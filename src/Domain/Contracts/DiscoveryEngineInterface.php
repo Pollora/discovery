@@ -118,7 +118,7 @@ interface DiscoveryEngineInterface
      * @param  mixed  $cache  The cache implementation (for compatibility)
      * @return static Returns self for method chaining
      */
-    public function withCache($cache): static;
+    public function withCache(mixed $cache): static;
 
     /**
      * Clear all discovery caches
