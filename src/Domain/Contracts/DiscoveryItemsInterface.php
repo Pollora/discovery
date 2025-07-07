@@ -14,18 +14,16 @@ use IteratorAggregate;
  * Provides methods to add, retrieve, and manage discovered items with
  * support for location-based organization and caching.
  *
- * @package Pollora\Discovery\Domain\Contracts
- * 
+ *
  * @extends IteratorAggregate<int, mixed>
  */
-interface DiscoveryItemsInterface extends IteratorAggregate, Countable
+interface DiscoveryItemsInterface extends Countable, IteratorAggregate
 {
     /**
      * Add multiple values for a specific location
      *
-     * @param DiscoveryLocationInterface $location The discovery location
-     * @param array<mixed> $values The values to add
-     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
+     * @param  array<mixed>  $values  The values to add
      * @return static Returns self for method chaining
      */
     public function addForLocation(DiscoveryLocationInterface $location, array $values): static;
@@ -33,8 +31,7 @@ interface DiscoveryItemsInterface extends IteratorAggregate, Countable
     /**
      * Get all values for a specific location
      *
-     * @param DiscoveryLocationInterface $location The discovery location
-     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
      * @return array<mixed> The values for the location
      */
     public function getForLocation(DiscoveryLocationInterface $location): array;
@@ -42,9 +39,8 @@ interface DiscoveryItemsInterface extends IteratorAggregate, Countable
     /**
      * Add a single value for a specific location
      *
-     * @param DiscoveryLocationInterface $location The discovery location
-     * @param mixed $value The value to add
-     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
+     * @param  mixed  $value  The value to add
      * @return static Returns self for method chaining
      */
     public function add(DiscoveryLocationInterface $location, mixed $value): static;
@@ -52,8 +48,7 @@ interface DiscoveryItemsInterface extends IteratorAggregate, Countable
     /**
      * Check if a location has any discovered items
      *
-     * @param DiscoveryLocationInterface $location The discovery location
-     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
      * @return bool True if the location has items, false otherwise
      */
     public function hasLocation(DiscoveryLocationInterface $location): bool;

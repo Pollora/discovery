@@ -15,8 +15,6 @@ use Traversable;
  * Represents a collection of discovered items organized by discovery location.
  * Provides methods to add, retrieve, and manage discovered items with
  * support for location-based organization and caching.
- *
- * @package Pollora\Discovery\Domain\Models
  */
 final class DiscoveryItems implements DiscoveryItemsInterface
 {
@@ -30,7 +28,7 @@ final class DiscoveryItems implements DiscoveryItemsInterface
     /**
      * Create a new discovery items collection
      *
-     * @param array<string, array<mixed>> $items Initial items organized by location key
+     * @param  array<string, array<mixed>>  $items  Initial items organized by location key
      */
     public function __construct(array $items = [])
     {
@@ -141,8 +139,7 @@ final class DiscoveryItems implements DiscoveryItemsInterface
      * This is a heuristic approach since we only have the CRC32 key.
      * In a real implementation, we might need to store more location metadata.
      *
-     * @param string $locationKey The location key to check
-     *
+     * @param  string  $locationKey  The location key to check
      * @return bool True if likely a vendor location
      */
     private function isVendorLocation(string $locationKey): bool
@@ -165,9 +162,7 @@ final class DiscoveryItems implements DiscoveryItemsInterface
     /**
      * Unserialize the items from cache
      *
-     * @param array<string, array<mixed>> $data The serialized data
-     *
-     * @return void
+     * @param  array<string, array<mixed>>  $data  The serialized data
      */
     public function __unserialize(array $data): void
     {

@@ -17,8 +17,6 @@ use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
  * - Discovering specific structures (classes, interfaces, files, etc.)
  * - Collecting discovery items during the discovery phase
  * - Applying the discovered items to register/configure services
- *
- * @package Pollora\Discovery\Domain\Contracts
  */
 interface DiscoveryInterface
 {
@@ -28,10 +26,8 @@ interface DiscoveryInterface
      * This method is called for each discovered structure and allows
      * the discovery class to examine and collect relevant items.
      *
-     * @param DiscoveryLocationInterface $location The discovery location context
-     * @param DiscoveredStructure $structure The discovered structure to examine
-     *
-     * @return void
+     * @param  DiscoveryLocationInterface  $location  The discovery location context
+     * @param  DiscoveredStructure  $structure  The discovered structure to examine
      */
     public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure): void;
 
@@ -50,9 +46,7 @@ interface DiscoveryInterface
      * Allows setting a pre-populated discovery items collection,
      * useful for caching and loading from storage.
      *
-     * @param DiscoveryItemsInterface $items The discovery items to set
-     *
-     * @return void
+     * @param  DiscoveryItemsInterface  $items  The discovery items to set
      */
     public function setItems(DiscoveryItemsInterface $items): void;
 
@@ -62,7 +56,6 @@ interface DiscoveryInterface
      * This method is called after discovery is complete to apply/register
      * all discovered items with the application (service container, registries, etc.).
      *
-     * @return void
      *
      * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryException When application fails
      */

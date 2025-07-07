@@ -17,8 +17,7 @@ use Pollora\Discovery\Domain\Models\DiscoveryItems;
  *
  * Classes using this trait must implement the DiscoveryInterface.
  *
- * @package Pollora\Discovery\Domain\Services
- * 
+ *
  * @phpstan-require-implements DiscoveryInterface
  */
 trait IsDiscovery
@@ -33,8 +32,8 @@ trait IsDiscovery
      */
     public function getItems(): DiscoveryItemsInterface
     {
-        if (!isset($this->discoveryItems)) {
-            $this->discoveryItems = new DiscoveryItems();
+        if (! isset($this->discoveryItems)) {
+            $this->discoveryItems = new DiscoveryItems;
         }
 
         return $this->discoveryItems;

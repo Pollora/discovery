@@ -13,14 +13,12 @@ use Tests\TestCase;
  *
  * Tests the DiscoveryItems domain model functionality including
  * item management, location-based organization, and iteration.
- *
- * @package Tests\Unit\Discovery\Domain\Models
  */
 final class DiscoveryItemsTest extends TestCase
 {
     public function test_can_create_empty_discovery_items(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
 
         $this->assertFalse($items->isLoaded());
         $this->assertCount(0, $items);
@@ -33,7 +31,7 @@ final class DiscoveryItemsTest extends TestCase
             'location1' => ['item1', 'item2'],
             'location2' => ['item3'],
         ];
-        
+
         $items = new DiscoveryItems($initialData);
 
         $this->assertTrue($items->isLoaded());
@@ -43,7 +41,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_can_add_single_item_for_location(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->add($location, 'test-item');
@@ -55,7 +53,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_can_add_multiple_items_for_location(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->addForLocation($location, ['item1', 'item2', 'item3']);
@@ -66,7 +64,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_can_add_items_to_existing_location(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->add($location, 'item1');
@@ -78,7 +76,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_can_handle_multiple_locations(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location1 = new DiscoveryLocation('App\\Models', '/app/models');
         $location2 = new DiscoveryLocation('App\\Services', '/app/services');
 
@@ -93,7 +91,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_returns_empty_array_for_unknown_location(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $result = $items->getForLocation($location);
@@ -104,7 +102,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_can_iterate_over_all_items(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location1 = new DiscoveryLocation('App\\Models', '/app/models');
         $location2 = new DiscoveryLocation('App\\Services', '/app/services');
 
@@ -121,7 +119,7 @@ final class DiscoveryItemsTest extends TestCase
 
     public function test_serialization_and_unserialization(): void
     {
-        $items = new DiscoveryItems();
+        $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->addForLocation($location, ['item1', 'item2']);
@@ -131,7 +129,7 @@ final class DiscoveryItemsTest extends TestCase
         $this->assertIsArray($serialized);
 
         // Test unserialization
-        $newItems = new DiscoveryItems();
+        $newItems = new DiscoveryItems;
         $newItems->__unserialize($serialized);
 
         $this->assertEquals($items->all(), $newItems->all());
