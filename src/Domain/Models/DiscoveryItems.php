@@ -19,21 +19,16 @@ use Traversable;
 final class DiscoveryItems implements DiscoveryItemsInterface
 {
     /**
-     * The discovered items organized by location key
-     *
-     * @var array<string, array<mixed>>
-     */
-    private array $items = [];
-
-    /**
      * Create a new discovery items collection
      *
      * @param  array<string, array<mixed>>  $items  Initial items organized by location key
      */
-    public function __construct(array $items = [])
-    {
-        $this->items = $items;
-    }
+    public function __construct(
+        /**
+         * The discovered items organized by location key
+         */
+        private array $items = []
+    ) {}
 
     /**
      * {@inheritDoc}
@@ -95,7 +90,7 @@ final class DiscoveryItems implements DiscoveryItemsInterface
             // We need to check if the location is vendor, but we only have the key
             // This is a limitation - we'd need to store location objects or add vendor flag
             // For now, we'll use a simple heuristic based on common vendor paths
-            if ($this->isVendorLocation($locationKey)) {
+            if ($this->isVendorLocation()) {
                 $vendorItems[$locationKey] = $items;
             }
         }
@@ -139,10 +134,9 @@ final class DiscoveryItems implements DiscoveryItemsInterface
      * This is a heuristic approach since we only have the CRC32 key.
      * In a real implementation, we might need to store more location metadata.
      *
-     * @param  string  $locationKey  The location key to check
      * @return bool True if likely a vendor location
      */
-    private function isVendorLocation(string $locationKey): bool
+    private function isVendorLocation(): bool
     {
         // This is a simplified heuristic - in practice, you might want to
         // store additional metadata about locations or use a different approach

@@ -113,8 +113,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function discover(): static
     {
-        foreach ($this->discoveries as $identifier => $discovery) {
-            $this->discoverSingle($identifier, $discovery);
+        foreach ($this->discoveries as $discovery) {
+            $this->discoverSingle($discovery);
         }
 
         return $this;
@@ -195,12 +195,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Discover items for a single discovery class
      *
-     * @param  string  $identifier  The discovery identifier
      * @param  DiscoveryInterface  $discovery  The discovery instance
      *
      * @throws DiscoveryException When discovery fails
      */
-    private function discoverSingle(string $identifier, DiscoveryInterface $discovery): void
+    private function discoverSingle(DiscoveryInterface $discovery): void
     {
         try {
             // Initialize fresh discovery items
@@ -286,7 +285,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     public function runDiscovery(string $identifier, DiscoveryInterface $discovery): static
     {
         try {
-            $this->discoverSingle($identifier, $discovery);
+            $this->discoverSingle($discovery);
             $discovery->apply();
         } catch (\Throwable $e) {
             // Add more detailed error logging

@@ -12,7 +12,7 @@ use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
  * Simple implementation of DiscoveryLocationInterface for directory-based discovery.
  * This class represents a filesystem directory where discovery should be performed.
  */
-final readonly class DirectoryLocation implements DiscoveryLocationInterface
+final readonly class DirectoryLocation implements \Stringable, DiscoveryLocationInterface
 {
     /**
      * Create a new directory location
@@ -73,7 +73,7 @@ final readonly class DirectoryLocation implements DiscoveryLocationInterface
     public function toClassName(string $filePath): string
     {
         // If no namespace is provided, we can't convert to class name
-        if (empty($this->namespace)) {
+        if ($this->namespace === null || $this->namespace === '' || $this->namespace === '0') {
             return '';
         }
 
@@ -96,6 +96,6 @@ final readonly class DirectoryLocation implements DiscoveryLocationInterface
      */
     public function __toString(): string
     {
-        return $this->namespace ? "{$this->namespace}:{$this->path}" : $this->path;
+        return $this->namespace !== null && $this->namespace !== '' && $this->namespace !== '0' ? "{$this->namespace}:{$this->path}" : $this->path;
     }
 }
