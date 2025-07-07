@@ -12,8 +12,6 @@ use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
  * Represents a location where discovery should be performed.
  * Contains the namespace and path information necessary for
  * proper class resolution and discovery context.
- *
- * @package Pollora\Discovery\Domain\Models
  */
 final readonly class DiscoveryLocation implements DiscoveryLocationInterface
 {
@@ -25,8 +23,8 @@ final readonly class DiscoveryLocation implements DiscoveryLocationInterface
     /**
      * Create a new discovery location
      *
-     * @param string $namespace The base namespace for this location
-     * @param string $path The filesystem path for this location
+     * @param  string  $namespace  The base namespace for this location
+     * @param  string  $path  The filesystem path for this location
      */
     public function __construct(
         public string $namespace,
@@ -73,35 +71,34 @@ final readonly class DiscoveryLocation implements DiscoveryLocationInterface
     public function toClassName(string $filePath): string
     {
         // Ensure the file path is within this location
-        if (!str_starts_with($filePath, $this->path)) {
+        if (! str_starts_with($filePath, $this->path)) {
             return '';
         }
 
         // Convert file path to class name
         $relativePath = substr($filePath, strlen($this->path));
         $relativePath = ltrim($relativePath, '/\\');
-        
+
         // Remove .php extension
         $relativePath = preg_replace('/\.php$/', '', $relativePath);
-        
+
         // Convert path separators to namespace separators
         $className = str_replace(['/', '\\'], '\\', $relativePath);
-        
+
         // Combine with base namespace
-        return rtrim($this->namespace, '\\') . '\\' . $className;
+        return rtrim($this->namespace, '\\').'\\'.$className;
     }
 
     /**
      * Resolve the absolute path
      *
-     * @param string $path The path to resolve
-     *
+     * @param  string  $path  The path to resolve
      * @return string The resolved absolute path
      */
     private function resolvePath(string $path): string
     {
         $resolved = realpath(rtrim($path, '\\/'));
-        
+
         return $resolved !== false ? $resolved : rtrim($path, '\\/');
     }
 }

@@ -6,19 +6,18 @@ namespace Pollora\Discovery\Infrastructure\Services;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Pollora\Discovery\Domain\Contracts\DiscoversPathInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
-use Pollora\Discovery\Domain\Contracts\DiscoversPathInterface;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
-use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use SplFileInfo;
 use Spatie\StructureDiscoverer\Discover;
+use SplFileInfo;
 
 /**
  * Discovery Engine
@@ -31,8 +30,6 @@ use Spatie\StructureDiscoverer\Discover;
  * - Coordinating the discovery process across PHP structures and files
  * - Caching discovery results for performance
  * - Applying discovered items through registered discoveries
- *
- * @package Pollora\Discovery\Infrastructure\Services
  */
 final class DiscoveryEngine implements DiscoveryEngineInterface
 {
@@ -50,17 +47,16 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private Collection $discoveries;
 
-
     /**
      * Create a new discovery engine
      *
-     * @param Container $container The service container for dependency injection
+     * @param  Container  $container  The service container for dependency injection
      */
     public function __construct(
         private readonly Container $container
     ) {
-        $this->locations = new Collection();
-        $this->discoveries = new Collection();
+        $this->locations = new Collection;
+        $this->discoveries = new Collection;
     }
 
     /**
@@ -153,7 +149,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function getDiscovery(string $identifier): DiscoveryInterface
     {
-        if (!$this->discoveries->has($identifier)) {
+        if (! $this->discoveries->has($identifier)) {
             throw DiscoveryNotFoundException::withIdentifier($identifier);
         }
 
@@ -199,10 +195,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Discover items for a single discovery class
      *
-     * @param string $identifier The discovery identifier
-     * @param DiscoveryInterface $discovery The discovery instance
-     *
-     * @return void
+     * @param  string  $identifier  The discovery identifier
+     * @param  DiscoveryInterface  $discovery  The discovery instance
      *
      * @throws DiscoveryException When discovery fails
      */
@@ -210,7 +204,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         try {
             // Initialize fresh discovery items
-            $discovery->setItems(new DiscoveryItems());
+            $discovery->setItems(new DiscoveryItems);
 
             // Discover PHP structures using Spatie's native cache
             $this->discoverStructures($discovery);
@@ -221,8 +215,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             }
         } catch (\Throwable $e) {
             // Add more detailed error logging
-            error_log("Discovery failed for " . $discovery::class . ": " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+            error_log('Discovery failed for '.$discovery::class.': '.$e->getMessage());
+            error_log('Stack trace: '.$e->getTraceAsString());
             throw DiscoveryException::discoveryFailed($discovery::class, $e);
         }
     }
@@ -230,21 +224,19 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Discover PHP structures using Spatie's discoverer
      *
-     * @param DiscoveryInterface $discovery The discovery instance
-     *
-     * @return void
+     * @param  DiscoveryInterface  $discovery  The discovery instance
      */
     private function discoverStructures(DiscoveryInterface $discovery): void
     {
         foreach ($this->locations as $location) {
             // Use Spatie's native caching with a cache identifier based on location and discovery type
-            $cacheId = 'discovery_' . $discovery->getIdentifier() . '_' . md5($location->getPath());
-            
+            $cacheId = 'discovery_'.$discovery->getIdentifier().'_'.md5($location->getPath());
+
             $discoveredStructures = Discover::in($location->getPath())
                 ->full()
                 ->withCache(
                     $cacheId,
-                    new \Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver()
+                    new \Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver
                 )
                 ->get();
 
@@ -257,9 +249,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Discover file paths for path-aware discoveries
      *
-     * @param DiscoversPathInterface $discovery The path-aware discovery instance
-     *
-     * @return void
+     * @param  DiscoversPathInterface  $discovery  The path-aware discovery instance
      */
     private function discoverPaths(DiscoversPathInterface $discovery): void
     {
@@ -279,23 +269,19 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Clear all locations
-     *
-     * @return static
      */
     public function clearLocations(): static
     {
-        $this->locations = new Collection();
-        
+        $this->locations = new Collection;
+
         return $this;
     }
 
     /**
      * Run a specific discovery
      *
-     * @param string $identifier The discovery identifier
-     * @param DiscoveryInterface $discovery The discovery instance
-     *
-     * @return static
+     * @param  string  $identifier  The discovery identifier
+     * @param  DiscoveryInterface  $discovery  The discovery instance
      */
     public function runDiscovery(string $identifier, DiscoveryInterface $discovery): static
     {
@@ -304,18 +290,16 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $discovery->apply();
         } catch (\Throwable $e) {
             // Add more detailed error logging
-            error_log("Discovery failed for " . $discovery::class . ": " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+            error_log('Discovery failed for '.$discovery::class.': '.$e->getMessage());
+            error_log('Stack trace: '.$e->getTraceAsString());
             throw DiscoveryException::discoveryFailed($discovery::class, $e);
         }
-        
+
         return $this;
     }
 
     /**
      * Clone the engine
-     *
-     * @return void
      */
     public function __clone(): void
     {
@@ -326,8 +310,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Resolve a discovery instance from class name or instance
      *
-     * @param string|DiscoveryInterface $discovery The discovery to resolve
-     *
+     * @param  string|DiscoveryInterface  $discovery  The discovery to resolve
      * @return DiscoveryInterface The resolved discovery instance
      *
      * @throws InvalidDiscoveryException When the discovery is invalid
@@ -338,11 +321,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             return $discovery;
         }
 
-        if (!class_exists($discovery)) {
+        if (! class_exists($discovery)) {
             throw InvalidDiscoveryException::invalidClass($discovery, 'Class does not exist');
         }
 
-        if (!is_subclass_of($discovery, DiscoveryInterface::class)) {
+        if (! is_subclass_of($discovery, DiscoveryInterface::class)) {
             throw InvalidDiscoveryException::missingInterface($discovery, DiscoveryInterface::class);
         }
 

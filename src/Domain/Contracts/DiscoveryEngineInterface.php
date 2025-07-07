@@ -17,16 +17,13 @@ use Illuminate\Support\Collection;
  * - Coordinating discovery classes
  * - Handling caching strategies
  * - Executing the discovery and application process
- *
- * @package Pollora\Discovery\Domain\Contracts
  */
 interface DiscoveryEngineInterface
 {
     /**
      * Add a discovery location
      *
-     * @param DiscoveryLocationInterface $location The location to add for discovery
-     *
+     * @param  DiscoveryLocationInterface  $location  The location to add for discovery
      * @return static Returns self for method chaining
      */
     public function addLocation(DiscoveryLocationInterface $location): static;
@@ -34,8 +31,7 @@ interface DiscoveryEngineInterface
     /**
      * Add multiple discovery locations
      *
-     * @param array<DiscoveryLocationInterface> $locations The locations to add
-     *
+     * @param  array<DiscoveryLocationInterface>  $locations  The locations to add
      * @return static Returns self for method chaining
      */
     public function addLocations(array $locations): static;
@@ -43,9 +39,8 @@ interface DiscoveryEngineInterface
     /**
      * Register a discovery class
      *
-     * @param string $identifier Unique identifier for the discovery
-     * @param string|DiscoveryInterface $discovery Discovery class name or instance
-     *
+     * @param  string  $identifier  Unique identifier for the discovery
+     * @param  string|DiscoveryInterface  $discovery  Discovery class name or instance
      * @return static Returns self for method chaining
      */
     public function addDiscovery(string $identifier, string|DiscoveryInterface $discovery): static;
@@ -53,8 +48,7 @@ interface DiscoveryEngineInterface
     /**
      * Register multiple discovery classes
      *
-     * @param array<string, string|DiscoveryInterface> $discoveries Map of identifier to discovery
-     *
+     * @param  array<string, string|DiscoveryInterface>  $discoveries  Map of identifier to discovery
      * @return static Returns self for method chaining
      */
     public function addDiscoveries(array $discoveries): static;
@@ -97,8 +91,7 @@ interface DiscoveryEngineInterface
     /**
      * Get a specific discovery by identifier
      *
-     * @param string $identifier The discovery identifier
-     *
+     * @param  string  $identifier  The discovery identifier
      * @return DiscoveryInterface The discovery instance
      *
      * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException When discovery not found
@@ -122,8 +115,7 @@ interface DiscoveryEngineInterface
     /**
      * Enable caching for discoveries
      *
-     * @param mixed $cache The cache implementation (for compatibility)
-     *
+     * @param  mixed  $cache  The cache implementation (for compatibility)
      * @return static Returns self for method chaining
      */
     public function withCache($cache): static;

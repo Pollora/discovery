@@ -18,15 +18,13 @@ use Pollora\Discovery\Domain\Models\DiscoveryLocation;
  * methods for common discovery operations.
  *
  * Inspired by Tempest Framework's API while leveraging Spatie's structure discovery.
- *
- * @package Pollora\Discovery\Application\Services
  */
 class DiscoveryManager
 {
     /**
      * Create a new discovery manager
      *
-     * @param DiscoveryEngineInterface $engine The discovery engine
+     * @param  DiscoveryEngineInterface  $engine  The discovery engine
      */
     public function __construct(
         private readonly DiscoveryEngineInterface $engine
@@ -35,9 +33,8 @@ class DiscoveryManager
     /**
      * Add a discovery location by path and namespace
      *
-     * @param string $namespace The base namespace for the location
-     * @param string $path The filesystem path to scan
-     *
+     * @param  string  $namespace  The base namespace for the location
+     * @param  string  $path  The filesystem path to scan
      * @return static Returns self for method chaining
      */
     public function addLocation(string $namespace, string $path): static
@@ -51,8 +48,7 @@ class DiscoveryManager
     /**
      * Add multiple discovery locations
      *
-     * @param array<array{namespace: string, path: string}> $locations Array of location data
-     *
+     * @param  array<array{namespace: string, path: string}>  $locations  Array of location data
      * @return static Returns self for method chaining
      */
     public function addLocations(array $locations): static
@@ -67,9 +63,8 @@ class DiscoveryManager
     /**
      * Register a discovery class
      *
-     * @param string $identifier Unique identifier for the discovery
-     * @param string|DiscoveryInterface $discovery Discovery class name or instance
-     *
+     * @param  string  $identifier  Unique identifier for the discovery
+     * @param  string|DiscoveryInterface  $discovery  Discovery class name or instance
      * @return static Returns self for method chaining
      */
     public function addDiscovery(string $identifier, string|DiscoveryInterface $discovery): static
@@ -82,8 +77,7 @@ class DiscoveryManager
     /**
      * Register multiple discovery classes
      *
-     * @param array<string, string|DiscoveryInterface> $discoveries Map of identifier to discovery
-     *
+     * @param  array<string, string|DiscoveryInterface>  $discoveries  Map of identifier to discovery
      * @return static Returns self for method chaining
      */
     public function addDiscoveries(array $discoveries): static
@@ -139,8 +133,7 @@ class DiscoveryManager
     /**
      * Get a specific discovery by identifier
      *
-     * @param string $identifier The discovery identifier
-     *
+     * @param  string  $identifier  The discovery identifier
      * @return DiscoveryInterface The discovery instance
      */
     public function getDiscovery(string $identifier): DiscoveryInterface
@@ -183,14 +176,14 @@ class DiscoveryManager
     /**
      * Check if a discovery is registered
      *
-     * @param string $identifier The discovery identifier to check
-     *
+     * @param  string  $identifier  The discovery identifier to check
      * @return bool True if the discovery is registered, false otherwise
      */
     public function hasDiscovery(string $identifier): bool
     {
         try {
             $this->getDiscovery($identifier);
+
             return true;
         } catch (\Throwable) {
             return false;
@@ -200,27 +193,26 @@ class DiscoveryManager
     /**
      * Get discovered items for a specific discovery
      *
-     * @param string $identifier The discovery identifier
-     *
+     * @param  string  $identifier  The discovery identifier
      * @return array<mixed> The discovered items
      */
     public function getDiscoveredItems(string $identifier): array
     {
         $discovery = $this->getDiscovery($identifier);
+
         return $discovery->getItems()->all();
     }
 
     /**
      * Run a specific discovery type on a specific location
      *
-     * @param string $identifier The discovery identifier
-     * @param DiscoveryLocationInterface $location The location to discover in
-     *
+     * @param  string  $identifier  The discovery identifier
+     * @param  DiscoveryLocationInterface  $location  The location to discover in
      * @return static Returns self for method chaining
      */
     public function runSpecificDiscovery(string $identifier, DiscoveryLocationInterface $location): static
     {
-        if (!$this->hasDiscovery($identifier)) {
+        if (! $this->hasDiscovery($identifier)) {
             return $this;
         }
 
@@ -228,7 +220,7 @@ class DiscoveryManager
         $tempEngine = clone $this->engine;
         $tempEngine->clearLocations();
         $tempEngine->addLocation($location);
-        
+
         // Run only this specific discovery
         $discovery = $this->getDiscovery($identifier);
         $tempEngine->runDiscovery($identifier, $discovery);
@@ -239,29 +231,28 @@ class DiscoveryManager
     /**
      * Discover all structure types in a location
      *
-     * @param DiscoveryLocationInterface $location The location to discover in
-     *
+     * @param  DiscoveryLocationInterface  $location  The location to discover in
      * @return array<string, array> Results grouped by discovery type
      */
     public function discoverAllInLocation(DiscoveryLocationInterface $location): array
     {
         $results = [];
-        
+
         // Create a temporary engine for this location
         $tempEngine = clone $this->engine;
         $tempEngine->clearLocations();
         $tempEngine->addLocation($location);
-        
+
         // Run discovery and collect results by type
         $tempEngine->discover();
-        
+
         foreach ($this->getDiscoveries() as $identifier => $discovery) {
             $items = $discovery->getItems()->all();
-            if (!empty($items)) {
+            if (! empty($items)) {
                 $results[$identifier] = $items;
             }
         }
-        
+
         return $results;
     }
 }

@@ -10,8 +10,6 @@ namespace Pollora\Discovery\Domain\Contracts;
  * Represents a location where discovery should be performed, containing
  * the namespace and path information necessary for proper class resolution
  * and discovery context.
- *
- * @package Pollora\Discovery\Domain\Contracts
  */
 interface DiscoveryLocationInterface
 {
@@ -48,8 +46,7 @@ interface DiscoveryLocationInterface
     /**
      * Convert a file path to a fully qualified class name
      *
-     * @param string $filePath The path to the PHP file
-     *
+     * @param  string  $filePath  The path to the PHP file
      * @return string The fully qualified class name
      */
     public function toClassName(string $filePath): string;
