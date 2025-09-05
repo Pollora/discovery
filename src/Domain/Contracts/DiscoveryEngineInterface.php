@@ -111,19 +111,4 @@ interface DiscoveryEngineInterface
      * @return Collection<int, DiscoveryLocationInterface> Collection of discovery locations
      */
     public function getLocations(): Collection;
-
-    /**
-     * Enable caching for discoveries
-     *
-     * @param  mixed  $cache  The cache implementation (for compatibility)
-     * @return static Returns self for method chaining
-     */
-    public function withCache(mixed $cache): static;
-
-    /**
-     * Clear all discovery caches
-     *
-     * @return static Returns self for method chaining
-     */
-    public function clearCache(): static;
 }

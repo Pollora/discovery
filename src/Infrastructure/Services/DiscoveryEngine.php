@@ -16,6 +16,7 @@ use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Discover;
 use SplFileInfo;
 
@@ -173,26 +174,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function withCache($cache): static
-    {
-        // Cache is now handled natively by Spatie's Discover class
-        // This method is kept for interface compatibility but does nothing
-        return $this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function clearCache(): static
-    {
-        // Cache clearing would be handled by Spatie's cache system
-        // This method is kept for interface compatibility but does nothing
-        return $this;
-    }
-
-    /**
      * Discover items for a single discovery class
      *
      * @param  DiscoveryInterface  $discovery  The discovery instance
@@ -235,7 +216,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                 ->full()
                 ->withCache(
                     $cacheId,
-                    new \Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver
+                    new LaravelDiscoverCacheDriver
                 )
                 ->get();
 
