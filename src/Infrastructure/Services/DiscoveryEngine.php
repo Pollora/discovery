@@ -240,6 +240,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
             /** @var SplFileInfo $file */
             foreach ($iterator as $file) {
+                echo '<pre>';
+                var_dump($file);
+                echo '</pre>';
                 if ($file->isFile()) {
                     $discovery->discoverPath($location, $file->getPathname());
                 }
