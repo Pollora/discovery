@@ -21,7 +21,6 @@ use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Discover;
 use SplFileInfo;
-use function WP_CLI\Dispatcher\get_path;
 
 /**
  * Discovery Engine
@@ -232,7 +231,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                     ->full()
                     ->withCache(
                         $cacheId,
-                        $this->debugDetector->isDebugMode() ? new NullDiscoverCacheDriver() : new LaravelDiscoverCacheDriver
+                        $this->debugDetector->isDebugMode() ? new NullDiscoverCacheDriver : new LaravelDiscoverCacheDriver
                     )
                     ->get();
 
