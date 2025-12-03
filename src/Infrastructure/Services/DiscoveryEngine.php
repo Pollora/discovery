@@ -220,7 +220,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         foreach ($this->locations as $location) {
             // Use Spatie's native caching with a cache identifier based on location and discovery type
-            $cacheId = 'discovery_'.$discovery->getIdentifier().'_'.md5($location->getPath());
+            $cacheId = 'discovery_'.md5($location->getPath());
 
             // Check if we already have the structures cached in memory
             if (isset(self::$structuresCache[$cacheId])) {
