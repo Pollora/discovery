@@ -7,7 +7,6 @@ namespace Pollora\Discovery\Infrastructure\Services;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
-use Pollora\Discovery\Domain\Contracts\DiscoversPathInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
@@ -15,12 +14,9 @@ use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Discover;
-use SplFileInfo;
 
 /**
  * Discovery Engine
@@ -198,11 +194,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
             // Discover PHP structures using Spatie's native cache
             $this->discoverStructures($discovery);
-
-            // Discover file paths if the discovery supports it
-            if ($discovery instanceof DiscoversPathInterface) {
-                $this->discoverPaths($discovery);
-            }
         } catch (\Throwable $e) {
             // Add more detailed error logging
             error_log('Discovery failed for '.$discovery::class.': '.$e->getMessage());
@@ -245,26 +236,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         }
     }
 
-    /**
-     * Discover file paths for path-aware discoveries
-     *
-     * @param  DiscoversPathInterface  $discovery  The path-aware discovery instance
-     */
-    private function discoverPaths(DiscoversPathInterface $discovery): void
-    {
-        foreach ($this->locations as $location) {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($location->getPath())
-            );
-
-            /** @var SplFileInfo $file */
-            foreach ($iterator as $file) {
-                if ($file->isFile()) {
-                    $discovery->discoverPath($location, $file->getPathname());
-                }
-            }
-        }
-    }
 
     /**
      * Clear all locations
