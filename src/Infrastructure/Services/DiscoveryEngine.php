@@ -67,6 +67,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private readonly InstancePool $instancePool;
 
+
     /**
      * Create a new discovery engine
      *
@@ -160,6 +161,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         foreach ($this->discoveries as $discovery) {
             try {
+                // Inject instance pool into discoveries that can use it
+                $this->injectInstancePoolIfSupported($discovery);
+                
                 $discovery->apply();
             } catch (\Throwable $e) {
                 throw DiscoveryException::applicationFailed($discovery::class, $e);
@@ -282,6 +286,23 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     }
 
     /**
+     * Clear all caches
+     */
+    public function clearCache(): static
+    {
+        // Clear static structures cache
+        self::clearStructuresCache();
+        
+        // Clear context caches
+        $this->context->getReflectionCache()->clearCache();
+        
+        // Clear instance pool
+        $this->instancePool->clearAll();
+        
+        return $this;
+    }
+
+    /**
      * Run a specific discovery
      *
      * @param  string  $identifier  The discovery identifier
@@ -401,9 +422,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             }
         }
         
-        // Initialize discoveries with fresh items
+        // Initialize discoveries with fresh items only if they don't have items yet
         foreach ($this->discoveries as $discovery) {
-            $discovery->setItems(new DiscoveryItems);
+            if (! $discovery->getItems()->isLoaded()) {
+                $discovery->setItems(new DiscoveryItems);
+            }
         }
         
         // Process each class once for all applicable discoveries
@@ -530,5 +553,18 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             'instance_pool' => $this->instancePool->getStats(),
             'static_cache_size' => count(self::$structuresCache)
         ];
+    }
+    
+    /**
+     * Inject instance pool into discoveries that support it
+     * 
+     * @param  DiscoveryInterface  $discovery  The discovery to potentially inject into
+     */
+    private function injectInstancePoolIfSupported(DiscoveryInterface $discovery): void
+    {
+        // Check if the discovery has a method to accept the instance pool
+        if (method_exists($discovery, 'setInstancePool')) {
+            $discovery->setInstancePool($this->instancePool);
+        }
     }
 }

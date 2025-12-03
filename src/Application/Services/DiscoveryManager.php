@@ -255,4 +255,64 @@ class DiscoveryManager
 
         return $results;
     }
+
+    /**
+     * Get the underlying discovery engine
+     *
+     * @return DiscoveryEngineInterface The discovery engine instance
+     */
+    public function getEngine(): DiscoveryEngineInterface
+    {
+        return $this->engine;
+    }
+
+    /**
+     * Get performance statistics from the optimized engine
+     *
+     * @return array<string, mixed> Performance statistics or empty array if not available
+     */
+    public function getPerformanceStats(): array
+    {
+        if (method_exists($this->engine, 'getPerformanceStats')) {
+            return $this->engine->getPerformanceStats();
+        }
+
+        return [];
+    }
+
+    /**
+     * Get debugging information about the discovery state
+     *
+     * @return array<string, mixed> Debug information
+     */
+    public function getDebugInfo(): array
+    {
+        $debugInfo = [
+            'discoveries_count' => $this->getDiscoveries()->count(),
+            'locations_count' => $this->getLocations()->count(),
+            'discoveries' => [],
+            'locations' => [],
+        ];
+
+        // Add discovery details
+        foreach ($this->getDiscoveries() as $identifier => $discovery) {
+            $items = $this->getDiscoveredItems($identifier);
+            $debugInfo['discoveries'][$identifier] = [
+                'class' => get_class($discovery),
+                'items_count' => count($items),
+                'items' => array_slice($items, 0, 3), // Show first 3 items for debugging
+            ];
+        }
+
+        // Add location details
+        foreach ($this->getLocations() as $location) {
+            $debugInfo['locations'][] = [
+                'path' => $location->getPath(),
+                'namespace' => $location->getNamespace(),
+                'exists' => is_dir($location->getPath()),
+            ];
+        }
+
+        return $debugInfo;
+    }
 }
