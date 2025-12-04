@@ -232,22 +232,6 @@ final class DiscoveryContext
         return $total > 0 ? round(($hits / $total) * 100, 2) : 0.0;
     }
 
-    /**
-     * Reset the discovery context to its initial state.
-     */
-    public function reset(): void
-    {
-        $this->processedClasses = [];
-        $this->sharedData = [];
-        $this->processingStats = [
-            'classes_processed' => 0,
-            'discoveries_executed' => 0,
-            'cache_hits' => 0,
-            'cache_misses' => 0,
-            'errors' => 0,
-        ];
-        $this->reflectionCache->clearCache();
-    }
 
     /**
      * Get a summary of the discovery context state.

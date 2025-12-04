@@ -164,14 +164,6 @@ final class InstancePool
         return false;
     }
 
-    /**
-     * Clear all instances from the pool.
-     */
-    public function clearAll(): void
-    {
-        $this->instances = [];
-        $this->instantiating = [];
-    }
 
     /**
      * Get the number of instances in the pool.

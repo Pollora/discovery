@@ -232,9 +232,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             // Discover PHP structures using Spatie's native cache
             $this->discoverStructures($discovery);
         } catch (\Throwable $e) {
-            // Add more detailed error logging
-            error_log('Discovery failed for '.$discovery::class.': '.$e->getMessage());
-            error_log('Stack trace: '.$e->getTraceAsString());
+            $this->logDiscoveryError($discovery::class, $e);
             throw DiscoveryException::discoveryFailed($discovery::class, $e);
         }
     }
@@ -247,27 +245,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     private function discoverStructures(DiscoveryInterface $discovery): void
     {
         foreach ($this->locations as $location) {
-            // Use Spatie's native caching with a cache identifier based on location and discovery type
-            $cacheId = 'discovery_'.md5($location->getPath());
+            $structures = $this->getStructuresForLocation($location);
 
-            // Check if we already have the structures cached in memory
-            if (isset(self::$structuresCache[$cacheId])) {
-                $discoveredStructures = self::$structuresCache[$cacheId];
-            } else {
-                // Discover and cache the structures
-                $discover = Discover::in($location->getPath())->full();
-
-                if ($this->shouldUseCache()) {
-                    $discover = $discover->withCache($cacheId, $this->cacheDriver);
-                }
-
-                $discoveredStructures = $discover->get();
-
-                // Cache the results in memory for future use
-                self::$structuresCache[$cacheId] = $discoveredStructures;
-            }
-
-            foreach ($discoveredStructures as $structure) {
+            foreach ($structures as $structure) {
                 $discovery->discover($location, $structure);
             }
         }
@@ -284,30 +264,18 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         return $this;
     }
 
-    /**
-     * Clear the static structures cache
-     */
-    public static function clearStructuresCache(): void
-    {
-        self::$structuresCache = [];
-    }
 
     /**
-     * Clear all caches
+     * Clear persistent discovery cache
+     * 
+     * Only clears persistent cache (Spatie's structure discoverer cache).
+     * In-memory caches (reflection, instance pool, static cache) are automatically
+     * cleared at the end of the PHP process and don't need manual clearing.
      */
     public function clearCache(): static
     {
-        // Clear static structures cache
-        self::clearStructuresCache();
-
-        // Clear Spatie's structure discoverer cache
+        // Only clear the persistent Spatie cache
         $this->clearSpatieCache();
-
-        // Clear context caches
-        $this->context->getReflectionCache()->clearCache();
-
-        // Clear instance pool
-        $this->instancePool->clearAll();
 
         return $this;
     }
@@ -324,9 +292,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $this->discoverSingle($discovery);
             $discovery->apply();
         } catch (\Throwable $e) {
-            // Add more detailed error logging
-            error_log('Discovery failed for '.$discovery::class.': '.$e->getMessage());
-            error_log('Stack trace: '.$e->getTraceAsString());
+            $this->logDiscoveryError($discovery::class, $e);
             throw DiscoveryException::discoveryFailed($discovery::class, $e);
         }
 
@@ -381,26 +347,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $allStructures = [];
 
         foreach ($this->locations as $location) {
-            $cacheId = 'discovery_'.md5($location->getPath());
-
-            // Check static cache first
-            if (isset(self::$structuresCache[$cacheId])) {
-                $structures = self::$structuresCache[$cacheId];
-                $this->context->recordCacheHit();
-            } else {
-                $this->context->recordCacheMiss();
-
-                // Discover and cache structures
-                $discover = Discover::in($location->getPath())->full();
-
-                if ($this->shouldUseCache()) {
-                    $discover = $discover->withCache($cacheId, $this->cacheDriver);
-                }
-
-                $structures = $discover->get();
-
-                self::$structuresCache[$cacheId] = $structures;
-            }
+            $structures = $this->getStructuresForLocation($location);
 
             foreach ($structures as $structure) {
                 $structure->location = $location;
@@ -500,14 +447,14 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
                 } catch (\Throwable $e) {
                     $this->context->recordError();
-                    error_log("Discovery {$discoveryId} failed for class {$className}: " . $e->getMessage());
+                    $this->logDiscoveryError("Discovery {$discoveryId} for class {$className}", $e, false);
                     // Continue with other discoveries
                 }
             }
 
         } catch (\Throwable $e) {
             $this->context->recordError();
-            error_log("Failed to process class {$className}: " . $e->getMessage());
+            $this->logDiscoveryError("Failed to process class {$className}", $e, false);
         }
     }
 
@@ -624,13 +571,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private function clearSpatieCache(): void
     {
-        if (!$this->shouldUseCache() || !method_exists($this->cacheDriver, 'forget')) {
-            return;
-        }
-
         // Clear all cached discovery structures by iterating through known cache IDs
         foreach ($this->locations as $location) {
-            $cacheId = 'discovery_'.md5($location->getPath());
+            $cacheId = $this->generateCacheId($location);
             $this->cacheDriver->forget($cacheId);
         }
     }
@@ -643,5 +586,78 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     public function getCacheDriver(): ?DiscoverCacheDriver
     {
         return $this->cacheDriver;
+    }
+
+    /**
+     * Get structures for a specific location with caching
+     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
+     * @return array<mixed> The discovered structures
+     */
+    private function getStructuresForLocation(DiscoveryLocationInterface $location): array
+    {
+        $cacheId = $this->generateCacheId($location);
+
+        // Check static cache first
+        if (isset(self::$structuresCache[$cacheId])) {
+            $this->context->recordCacheHit();
+            return self::$structuresCache[$cacheId];
+        }
+
+        $this->context->recordCacheMiss();
+
+        // Create Spatie discoverer instance
+        $discover = $this->createSpatieDiscoverer($location, $cacheId);
+        $structures = $discover->get();
+
+        // Cache in memory for future use
+        self::$structuresCache[$cacheId] = $structures;
+
+        return $structures;
+    }
+
+    /**
+     * Create a configured Spatie discoverer instance
+     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
+     * @param  string  $cacheId  The cache identifier
+     * @return Discover The configured discoverer
+     */
+    private function createSpatieDiscoverer(DiscoveryLocationInterface $location, string $cacheId): Discover
+    {
+        $discover = Discover::in($location->getPath())->full();
+
+        if ($this->shouldUseCache()) {
+            $discover = $discover->withCache($cacheId, $this->cacheDriver);
+        }
+
+        return $discover;
+    }
+
+    /**
+     * Generate cache ID for a discovery location
+     *
+     * @param  DiscoveryLocationInterface  $location  The discovery location
+     * @return string The cache identifier
+     */
+    private function generateCacheId(DiscoveryLocationInterface $location): string
+    {
+        return 'discovery_'.md5($location->getPath());
+    }
+
+    /**
+     * Log discovery errors with consistent format
+     *
+     * @param  string  $context  The error context
+     * @param  \Throwable  $exception  The exception
+     * @param  bool  $includeStackTrace  Whether to include stack trace
+     */
+    private function logDiscoveryError(string $context, \Throwable $exception, bool $includeStackTrace = true): void
+    {
+        error_log("{$context}: {$exception->getMessage()}");
+
+        if ($includeStackTrace) {
+            error_log('Stack trace: '.$exception->getTraceAsString());
+        }
     }
 }

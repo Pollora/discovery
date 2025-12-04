@@ -162,7 +162,10 @@ class DiscoveryManager
     }
 
     /**
-     * Clear all discovery caches
+     * Clear persistent discovery cache
+     * 
+     * Only clears persistent cache (Spatie structure discoverer cache).
+     * In-memory caches are automatically cleared at process end.
      *
      * @return static Returns self for method chaining
      */

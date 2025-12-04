@@ -185,31 +185,7 @@ final class ReflectionCache implements ReflectionCacheInterface
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function clearCache(): void
-    {
-        $this->classReflections = [];
-        $this->classAttributes = [];
-        $this->methodsWithAttributes = [];
-        $this->classInstances = [];
-        $this->processedClasses = [];
-    }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function clearClass(string $className): void
-    {
-        unset(
-            $this->classReflections[$className],
-            $this->classAttributes[$className],
-            $this->methodsWithAttributes[$className],
-            $this->classInstances[$className],
-            $this->processedClasses[$className]
-        );
-    }
 
     /**
      * Build method attribute cache for a specific class and attribute type.

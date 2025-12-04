@@ -70,15 +70,4 @@ interface ReflectionCacheInterface
      */
     public function preloadClasses(array $classNames): void;
 
-    /**
-     * Clear the entire reflection cache.
-     */
-    public function clearCache(): void;
-
-    /**
-     * Clear cache for a specific class.
-     *
-     * @param  string  $className  The class name to clear from cache
-     */
-    public function clearClass(string $className): void;
 }
