@@ -18,6 +18,7 @@ use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use Pollora\Discovery\Infrastructure\Services\InstancePool;
 use Pollora\Discovery\Infrastructure\Services\ReflectionCache;
+use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Discover;
@@ -67,6 +68,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private readonly InstancePool $instancePool;
 
+    /**
+     * Cache driver for Spatie's structure discovery
+     */
+    private ?DiscoverCacheDriver $cacheDriver = null;
+
 
     /**
      * Create a new discovery engine
@@ -84,11 +90,12 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     ) {
         $this->locations = new Collection;
         $this->discoveries = new Collection;
-        
+
         // Initialize optimized services
         $reflectionCache ??= new ReflectionCache($container);
         $this->instancePool = $instancePool ?? new InstancePool($container);
         $this->context = new DiscoveryContext($reflectionCache);
+        $this->cacheDriver = $this->resolveCacheDriver();
     }
 
     /**
@@ -147,10 +154,10 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         // Discover all structures but don't preload reflection - keep lazy loading
         $allStructures = $this->discoverAllStructures();
-        
+
         // Process structures with unified approach without eager reflection loading
         $this->processStructuresUnified($allStructures);
-        
+
         return $this;
     }
 
@@ -163,7 +170,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             try {
                 // Inject instance pool into discoveries that can use it
                 $this->injectInstancePoolIfSupported($discovery);
-                
+
                 $discovery->apply();
             } catch (\Throwable $e) {
                 throw DiscoveryException::applicationFailed($discovery::class, $e);
@@ -248,13 +255,13 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                 $discoveredStructures = self::$structuresCache[$cacheId];
             } else {
                 // Discover and cache the structures
-                $discoveredStructures = Discover::in($location->getPath())
-                    ->full()
-                    ->withCache(
-                        $cacheId,
-                        $this->debugDetector->isDebugMode() ? new NullDiscoverCacheDriver : new LaravelDiscoverCacheDriver
-                    )
-                    ->get();
+                $discover = Discover::in($location->getPath())->full();
+
+                if ($this->shouldUseCache()) {
+                    $discover = $discover->withCache($cacheId, $this->cacheDriver);
+                }
+
+                $discoveredStructures = $discover->get();
 
                 // Cache the results in memory for future use
                 self::$structuresCache[$cacheId] = $discoveredStructures;
@@ -292,13 +299,16 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         // Clear static structures cache
         self::clearStructuresCache();
-        
+
+        // Clear Spatie's structure discoverer cache
+        $this->clearSpatieCache();
+
         // Clear context caches
         $this->context->getReflectionCache()->clearCache();
-        
+
         // Clear instance pool
         $this->instancePool->clearAll();
-        
+
         return $this;
     }
 
@@ -363,56 +373,56 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Discover all structures from all locations using Spatie's discoverer.
-     * 
+     *
      * @return array<\Spatie\StructureDiscoverer\Data\DiscoveredStructure> All discovered structures
      */
     private function discoverAllStructures(): array
     {
         $allStructures = [];
-        
+
         foreach ($this->locations as $location) {
             $cacheId = 'discovery_'.md5($location->getPath());
-            
+
             // Check static cache first
             if (isset(self::$structuresCache[$cacheId])) {
                 $structures = self::$structuresCache[$cacheId];
                 $this->context->recordCacheHit();
             } else {
                 $this->context->recordCacheMiss();
-                
+
                 // Discover and cache structures
-                $structures = Discover::in($location->getPath())
-                    ->full()
-                    ->withCache(
-                        $cacheId,
-                        $this->debugDetector->isDebugMode() ? new NullDiscoverCacheDriver : new LaravelDiscoverCacheDriver
-                    )
-                    ->get();
-                    
+                $discover = Discover::in($location->getPath())->full();
+
+                if ($this->shouldUseCache()) {
+                    $discover = $discover->withCache($cacheId, $this->cacheDriver);
+                }
+
+                $structures = $discover->get();
+
                 self::$structuresCache[$cacheId] = $structures;
             }
-            
+
             foreach ($structures as $structure) {
                 $structure->location = $location;
                 $allStructures[] = $structure;
             }
         }
-        
+
         return $allStructures;
     }
 
     /**
      * Process structures using unified approach to minimize redundant operations.
-     * 
+     *
      * @param  array<\Spatie\StructureDiscoverer\Data\DiscoveredStructure>  $structures  All discovered structures
      */
     private function processStructuresUnified(array $structures): void
     {
         // Group structures by class name for batch processing
         $structuresByClass = [];
-        
+
         foreach ($structures as $structure) {
-            if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass && 
+            if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass &&
                 ! $structure->isAbstract) {
                 $className = $structure->namespace . '\\' . $structure->name;
                 $structuresByClass[$className] = [
@@ -421,29 +431,29 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                 ];
             }
         }
-        
+
         // Initialize discoveries with fresh items only if they don't have items yet
         foreach ($this->discoveries as $discovery) {
             if (! $discovery->getItems()->isLoaded()) {
                 $discovery->setItems(new DiscoveryItems);
             }
         }
-        
+
         // Process each class once for all applicable discoveries
         foreach ($structuresByClass as $className => $data) {
             $this->processClassForAllDiscoveries(
-                $data['structure'], 
-                $data['location'], 
+                $data['structure'],
+                $data['location'],
                 $className
             );
         }
-        
+
         $this->context->incrementStat('classes_processed', count($structuresByClass));
     }
 
     /**
      * Process a single class for all applicable discoveries.
-     * 
+     *
      * @param  \Spatie\StructureDiscoverer\Data\DiscoveredClass  $structure  The discovered structure
      * @param  DiscoveryLocationInterface  $location  The discovery location
      * @param  string  $className  The fully qualified class name
@@ -456,45 +466,45 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         try {
             // Get shared reflection data once
             $reflectionCache = $this->context->getReflectionCache();
-            
+
             // Only get reflection if any discovery might need it
             $reflection = null;
             $classAttributes = null;
             $methodsWithAttributes = null;
-            
+
             foreach ($this->discoveries as $discoveryId => $discovery) {
                 try {
                     // Skip if already processed by this discovery type
                     if ($this->context->isProcessed($className, $discoveryId)) {
                         continue;
                     }
-                    
+
                     // Lazy load reflection data only when needed
                     if ($reflection === null && $this->discoveryNeedsReflection($discovery, $structure)) {
                         $reflection = $reflectionCache->getClassReflection($className);
                         $classAttributes = $reflectionCache->getClassAttributes($className);
                         $methodsWithAttributes = $reflectionCache->getMethodsWithAttributes($className);
-                        
+
                         // Store in shared context for other discoveries
                         $this->context->setSharedData($className, 'reflection', $reflection);
                         $this->context->setSharedData($className, 'class_attributes', $classAttributes);
                         $this->context->setSharedData($className, 'methods_with_attributes', $methodsWithAttributes);
                     }
-                    
+
                     // Let discovery process the structure
                     $discovery->discover($location, $structure);
-                    
+
                     // Mark as processed
                     $this->context->markProcessed($className, $discoveryId);
                     $this->context->incrementStat('discoveries_executed');
-                    
+
                 } catch (\Throwable $e) {
                     $this->context->recordError();
                     error_log("Discovery {$discoveryId} failed for class {$className}: " . $e->getMessage());
                     // Continue with other discoveries
                 }
             }
-            
+
         } catch (\Throwable $e) {
             $this->context->recordError();
             error_log("Failed to process class {$className}: " . $e->getMessage());
@@ -503,7 +513,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Check if a discovery needs reflection data.
-     * 
+     *
      * @param  DiscoveryInterface  $discovery  The discovery instance
      * @param  \Spatie\StructureDiscoverer\Data\DiscoveredClass  $structure  The discovered structure
      * @return bool True if reflection is needed
@@ -515,7 +525,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         if ($discovery instanceof \Pollora\Discovery\Infrastructure\Services\ServiceProviderDiscovery) {
             return false;
         }
-        
+
         // For other discoveries, only load reflection if we need to check attributes
         // and the class seems safe to load (not dependent on external plugins)
         return empty($structure->attributes);
@@ -523,27 +533,27 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Get the discovery context.
-     * 
+     *
      * @return DiscoveryContext
      */
     public function getContext(): DiscoveryContext
     {
         return $this->context;
     }
-    
+
     /**
      * Get the instance pool.
-     * 
+     *
      * @return InstancePool
      */
     public function getInstancePool(): InstancePool
     {
         return $this->instancePool;
     }
-    
+
     /**
      * Get performance statistics.
-     * 
+     *
      * @return array<string, mixed>
      */
     public function getPerformanceStats(): array
@@ -554,10 +564,10 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             'static_cache_size' => count(self::$structuresCache)
         ];
     }
-    
+
     /**
      * Inject instance pool into discoveries that support it
-     * 
+     *
      * @param  DiscoveryInterface  $discovery  The discovery to potentially inject into
      */
     private function injectInstancePoolIfSupported(DiscoveryInterface $discovery): void
@@ -566,5 +576,72 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         if (method_exists($discovery, 'setInstancePool')) {
             $discovery->setInstancePool($this->instancePool);
         }
+    }
+
+    /**
+     * Resolve the cache driver from Laravel configuration
+     *
+     * @return DiscoverCacheDriver|null
+     */
+    private function resolveCacheDriver(): ?DiscoverCacheDriver
+    {
+        if ($this->debugDetector->isDebugMode()) {
+            return new NullDiscoverCacheDriver();
+        }
+
+        // Get cache configuration from structure-discoverer config
+        $cacheConfig = config('structure-discoverer.cache', []);
+        $driverClass = $cacheConfig['driver'] ?? LaravelDiscoverCacheDriver::class;
+        $store = $cacheConfig['store'] ?? null;
+
+        if ($driverClass === LaravelDiscoverCacheDriver::class) {
+            return new LaravelDiscoverCacheDriver(prefix: 'pollora', store: $store);
+        }
+
+        // For custom drivers, try to instantiate via container
+        try {
+            return $this->container->make($driverClass);
+        } catch (\Throwable) {
+            // Fallback to Laravel driver if custom driver fails
+            return new LaravelDiscoverCacheDriver(prefix: 'pollora', store: $store);
+        }
+    }
+
+    /**
+     * Determine if caching should be used
+     *
+     * @return bool
+     */
+    private function shouldUseCache(): bool
+    {
+        return $this->cacheDriver !== null && !($this->cacheDriver instanceof NullDiscoverCacheDriver);
+    }
+
+    /**
+     * Clear Spatie's structure discoverer cache
+     *
+     * @return void
+     */
+    private function clearSpatieCache(): void
+    {
+        if (!$this->shouldUseCache() || !method_exists($this->cacheDriver, 'forget')) {
+            return;
+        }
+
+        // Clear all cached discovery structures by iterating through known cache IDs
+        foreach ($this->locations as $location) {
+            $cacheId = 'discovery_'.md5($location->getPath());
+            $this->cacheDriver->forget($cacheId);
+        }
+    }
+
+    /**
+     * Get the cache driver instance
+     *
+     * @return DiscoverCacheDriver|null
+     */
+    public function getCacheDriver(): ?DiscoverCacheDriver
+    {
+        return $this->cacheDriver;
     }
 }
