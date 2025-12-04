@@ -93,6 +93,8 @@ final readonly class DirectoryLocation implements \Stringable, DiscoveryLocation
 
     /**
      * Get a string representation of the location
+     *
+     * @return string The string representation of the location
      */
     public function __toString(): string
     {

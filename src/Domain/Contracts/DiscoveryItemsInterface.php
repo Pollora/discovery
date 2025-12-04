@@ -14,7 +14,6 @@ use IteratorAggregate;
  * Provides methods to add, retrieve, and manage discovered items with
  * support for location-based organization and caching.
  *
- *
  * @extends IteratorAggregate<int, mixed>
  */
 interface DiscoveryItemsInterface extends Countable, IteratorAggregate

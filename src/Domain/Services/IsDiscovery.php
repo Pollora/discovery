@@ -17,7 +17,6 @@ use Pollora\Discovery\Domain\Models\DiscoveryItems;
  *
  * Classes using this trait must implement the DiscoveryInterface.
  *
- *
  * @phpstan-require-implements DiscoveryInterface
  */
 trait IsDiscovery
