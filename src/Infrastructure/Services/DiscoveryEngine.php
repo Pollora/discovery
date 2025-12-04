@@ -16,8 +16,6 @@ use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
-use Pollora\Discovery\Infrastructure\Services\InstancePool;
-use Pollora\Discovery\Infrastructure\Services\ReflectionCache;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
@@ -72,7 +70,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * Cache driver for Spatie's structure discovery
      */
     private ?DiscoverCacheDriver $cacheDriver = null;
-
 
     /**
      * Create a new discovery engine
@@ -253,7 +250,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         }
     }
 
-
     /**
      * Clear all locations
      */
@@ -264,10 +260,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         return $this;
     }
 
-
     /**
      * Clear persistent discovery cache
-     * 
+     *
      * Only clears persistent cache (Spatie's structure discoverer cache).
      * In-memory caches (reflection, instance pool, static cache) are automatically
      * cleared at the end of the PHP process and don't need manual clearing.
@@ -371,10 +366,10 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         foreach ($structures as $structure) {
             if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass &&
                 ! $structure->isAbstract) {
-                $className = $structure->namespace . '\\' . $structure->name;
+                $className = $structure->namespace.'\\'.$structure->name;
                 $structuresByClass[$className] = [
                     'structure' => $structure,
-                    'location' => $structure->location
+                    'location' => $structure->location,
                 ];
             }
         }
@@ -480,8 +475,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Get the discovery context.
-     *
-     * @return DiscoveryContext
      */
     public function getContext(): DiscoveryContext
     {
@@ -490,8 +483,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Get the instance pool.
-     *
-     * @return InstancePool
      */
     public function getInstancePool(): InstancePool
     {
@@ -508,7 +499,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         return [
             'context' => $this->context->getSummary(),
             'instance_pool' => $this->instancePool->getStats(),
-            'static_cache_size' => count(self::$structuresCache)
+            'static_cache_size' => count(self::$structuresCache),
         ];
     }
 
@@ -527,13 +518,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Resolve the cache driver from Laravel configuration
-     *
-     * @return DiscoverCacheDriver|null
      */
     private function resolveCacheDriver(): ?DiscoverCacheDriver
     {
         if ($this->debugDetector->isDebugMode()) {
-            return new NullDiscoverCacheDriver();
+            return new NullDiscoverCacheDriver;
         }
 
         // Get cache configuration from structure-discoverer config
@@ -556,18 +545,14 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Determine if caching should be used
-     *
-     * @return bool
      */
     private function shouldUseCache(): bool
     {
-        return $this->cacheDriver !== null && !($this->cacheDriver instanceof NullDiscoverCacheDriver);
+        return $this->cacheDriver !== null && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
     }
 
     /**
      * Clear Spatie's structure discoverer cache
-     *
-     * @return void
      */
     private function clearSpatieCache(): void
     {
@@ -580,8 +565,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
     /**
      * Get the cache driver instance
-     *
-     * @return DiscoverCacheDriver|null
      */
     public function getCacheDriver(): ?DiscoverCacheDriver
     {
@@ -601,6 +584,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         // Check static cache first
         if (isset(self::$structuresCache[$cacheId])) {
             $this->context->recordCacheHit();
+
             return self::$structuresCache[$cacheId];
         }
 

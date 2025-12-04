@@ -89,7 +89,7 @@ final class DiscoveryContext
      */
     public function isClassProcessed(string $className): bool
     {
-        return isset($this->processedClasses[$className]) && 
+        return isset($this->processedClasses[$className]) &&
                ! empty($this->processedClasses[$className]);
     }
 
@@ -146,8 +146,6 @@ final class DiscoveryContext
 
     /**
      * Get the reflection cache instance.
-     *
-     * @return ReflectionCacheInterface
      */
     public function getReflectionCache(): ReflectionCacheInterface
     {
@@ -164,9 +162,9 @@ final class DiscoveryContext
         $classNames = [];
 
         foreach ($structures as $structure) {
-            if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass && 
+            if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass &&
                 ! $structure->isAbstract) {
-                $classNames[] = $structure->namespace . '\\' . $structure->name;
+                $classNames[] = $structure->namespace.'\\'.$structure->name;
             }
         }
 
@@ -231,7 +229,6 @@ final class DiscoveryContext
 
         return $total > 0 ? round(($hits / $total) * 100, 2) : 0.0;
     }
-
 
     /**
      * Get a summary of the discovery context state.

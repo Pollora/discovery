@@ -81,13 +81,13 @@ final class ReflectionCache implements ReflectionCacheInterface
                 if (! class_exists($className, true)) {
                     throw new ReflectionException("Class {$className} does not exist or cannot be autoloaded");
                 }
-                
+
                 $this->classReflections[$className] = new ReflectionClass($className);
                 $this->processedClasses[$className] = true;
             } catch (\Throwable $e) {
                 // Log the error but mark as processed to avoid retrying
                 $this->processedClasses[$className] = true;
-                
+
                 throw new ReflectionException(
                     "Failed to create reflection for class {$className}: {$e->getMessage()}",
                     $e->getCode(),
@@ -184,8 +184,6 @@ final class ReflectionCache implements ReflectionCacheInterface
             }
         }
     }
-
-
 
     /**
      * Build method attribute cache for a specific class and attribute type.

@@ -69,5 +69,4 @@ interface ReflectionCacheInterface
      * @param  array<string>  $classNames  Array of class names to preload
      */
     public function preloadClasses(array $classNames): void;
-
 }

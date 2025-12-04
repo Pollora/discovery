@@ -72,6 +72,7 @@ final class InstancePool
         // Cache hit - return existing instance
         if (isset($this->instances[$className])) {
             $this->stats['hits']++;
+
             return $this->instances[$className];
         }
 
@@ -104,9 +105,9 @@ final class InstancePool
         } catch (\Throwable $e) {
             // Clean up instantiating state on error
             unset($this->instantiating[$className]);
-            
+
             $this->stats['errors']++;
-            
+
             throw new \RuntimeException(
                 "Failed to instantiate class {$className}: {$e->getMessage()}",
                 $e->getCode(),
@@ -158,12 +159,12 @@ final class InstancePool
     {
         if (isset($this->instances[$className])) {
             unset($this->instances[$className]);
+
             return true;
         }
 
         return false;
     }
-
 
     /**
      * Get the number of instances in the pool.
@@ -300,13 +301,11 @@ final class InstancePool
             $unitIndex++;
         }
 
-        return round($bytes, 2) . ' ' . $units[$unitIndex];
+        return round($bytes, 2).' '.$units[$unitIndex];
     }
 }
 
 /**
  * Exception thrown when circular dependency is detected during instantiation
  */
-class CircularDependencyException extends \RuntimeException
-{
-}
+class CircularDependencyException extends \RuntimeException {}
