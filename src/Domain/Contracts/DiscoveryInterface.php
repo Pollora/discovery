@@ -28,8 +28,9 @@ interface DiscoveryInterface
      *
      * @param  DiscoveryLocationInterface  $location  The discovery location context
      * @param  DiscoveredStructure  $structure  The discovered structure to examine
+     * @param  ReflectionCacheInterface|null  $reflectionCache  Optional reflection cache to avoid redundant reflection operations
      */
-    public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure): void;
+    public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure, ?ReflectionCacheInterface $reflectionCache = null): void;
 
     /**
      * Get the collected discovery items

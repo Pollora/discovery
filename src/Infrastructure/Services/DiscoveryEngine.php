@@ -241,11 +241,13 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private function discoverStructures(DiscoveryInterface $discovery): void
     {
+        $reflectionCache = $this->context->getReflectionCache();
+
         foreach ($this->locations as $location) {
             $structures = $this->getStructuresForLocation($location);
 
             foreach ($structures as $structure) {
-                $discovery->discover($location, $structure);
+                $discovery->discover($location, $structure, $reflectionCache);
             }
         }
     }
@@ -433,8 +435,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                         $this->context->setSharedData($className, 'methods_with_attributes', $methodsWithAttributes);
                     }
 
-                    // Let discovery process the structure
-                    $discovery->discover($location, $structure);
+                    // Let discovery process the structure with reflection cache
+                    $discovery->discover($location, $structure, $reflectionCache);
 
                     // Mark as processed
                     $this->context->markProcessed($className, $discoveryId);
