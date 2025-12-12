@@ -73,7 +73,7 @@ final readonly class DirectoryLocation implements \Stringable, DiscoveryLocation
     public function toClassName(string $filePath): string
     {
         // If no namespace is provided, we can't convert to class name
-        if ($this->namespace === null || $this->namespace === '' || $this->namespace === '0') {
+        if (in_array($this->namespace, [null, '', '0'], true)) {
             return '';
         }
 
@@ -98,6 +98,6 @@ final readonly class DirectoryLocation implements \Stringable, DiscoveryLocation
      */
     public function __toString(): string
     {
-        return $this->namespace !== null && $this->namespace !== '' && $this->namespace !== '0' ? "{$this->namespace}:{$this->path}" : $this->path;
+        return in_array($this->namespace, [null, '', '0'], true) ? $this->path : "{$this->namespace}:{$this->path}";
     }
 }

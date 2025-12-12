@@ -301,7 +301,7 @@ class DiscoveryManager
         foreach ($this->getDiscoveries() as $identifier => $discovery) {
             $items = $this->getDiscoveredItems($identifier);
             $debugInfo['discoveries'][$identifier] = [
-                'class' => get_class($discovery),
+                'class' => $discovery::class,
                 'items_count' => count($items),
                 'items' => array_slice($items, 0, 3), // Show first 3 items for debugging
             ];

@@ -238,13 +238,13 @@ final class DiscoveryContext
     public function getSummary(): array
     {
         $totalClasses = count($this->processedClasses);
-        $totalDiscoveries = array_sum(array_map('count', $this->processedClasses));
+        $totalDiscoveries = array_sum(array_map(count(...), $this->processedClasses));
 
         return [
             'total_classes' => $totalClasses,
             'total_discovery_executions' => $totalDiscoveries,
             'cache_efficiency' => $this->getCacheEfficiency(),
-            'shared_data_entries' => array_sum(array_map('count', $this->sharedData)),
+            'shared_data_entries' => array_sum(array_map(count(...), $this->sharedData)),
             'stats' => $this->processingStats,
         ];
     }

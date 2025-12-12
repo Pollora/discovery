@@ -422,7 +422,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                     }
 
                     // Lazy load reflection data only when needed
-                    if ($reflection === null && $this->discoveryNeedsReflection($discovery, $structure)) {
+                    if (! $reflection instanceof \ReflectionClass && $this->discoveryNeedsReflection($discovery, $structure)) {
                         $reflection = $reflectionCache->getClassReflection($className);
                         $classAttributes = $reflectionCache->getClassAttributes($className);
                         $methodsWithAttributes = $reflectionCache->getMethodsWithAttributes($className);
@@ -470,7 +470,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
         // For other discoveries, only load reflection if we need to check attributes
         // and the class seems safe to load (not dependent on external plugins)
-        return empty($structure->attributes);
+        return $structure->attributes === [];
     }
 
     /**
@@ -548,7 +548,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private function shouldUseCache(): bool
     {
-        return $this->cacheDriver !== null && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
+        return $this->cacheDriver instanceof \Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
     }
 
     /**
@@ -612,7 +612,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $discover = Discover::in($location->getPath())->full();
 
         if ($this->shouldUseCache()) {
-            $discover = $discover->withCache($cacheId, $this->cacheDriver);
+            return $discover->withCache($cacheId, $this->cacheDriver);
         }
 
         return $discover;
