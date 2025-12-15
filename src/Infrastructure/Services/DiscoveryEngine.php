@@ -100,16 +100,16 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function addLocation(DiscoveryLocationInterface $location): static
     {
-        // Check for duplicate locations (same path and namespace)
+        // Check for duplicate locations (same path)
         $locationPath = realpath($location->getPath()) ?: $location->getPath();
-        $locationNamespace = $location->getNamespace();
-        
-        $isDuplicate = $this->locations->contains(function (DiscoveryLocationInterface $existingLocation) use ($locationPath, $locationNamespace) {
+
+        $isDuplicate = $this->locations->contains(function (DiscoveryLocationInterface $existingLocation) use ($locationPath) {
             $existingPath = realpath($existingLocation->getPath()) ?: $existingLocation->getPath();
-            return $existingPath === $locationPath && $existingLocation->getNamespace() === $locationNamespace;
+
+            return $existingPath === $locationPath;
         });
-        
-        if (!$isDuplicate) {
+
+        if (! $isDuplicate) {
             $this->locations->push($location);
         }
 

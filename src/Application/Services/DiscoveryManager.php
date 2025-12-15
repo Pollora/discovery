@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
-use Pollora\Discovery\Domain\Models\DiscoveryLocation;
+use Pollora\Discovery\Domain\Models\DirectoryLocation;
 
 /**
  * Discovery Manager
@@ -31,15 +31,14 @@ class DiscoveryManager
     ) {}
 
     /**
-     * Add a discovery location by path and namespace
+     * Add a discovery location by path
      *
-     * @param  string  $namespace  The base namespace for the location
      * @param  string  $path  The filesystem path to scan
      * @return static Returns self for method chaining
      */
-    public function addLocation(string $namespace, string $path): static
+    public function addLocation(string $path): static
     {
-        $location = new DiscoveryLocation($namespace, $path);
+        $location = new DirectoryLocation($path);
         $this->engine->addLocation($location);
 
         return $this;
@@ -48,13 +47,13 @@ class DiscoveryManager
     /**
      * Add multiple discovery locations
      *
-     * @param  array<array{namespace: string, path: string}>  $locations  Array of location data
+     * @param  array<string>  $paths  Array of filesystem paths
      * @return static Returns self for method chaining
      */
-    public function addLocations(array $locations): static
+    public function addLocations(array $paths): static
     {
-        foreach ($locations as $locationData) {
-            $this->addLocation($locationData['namespace'], $locationData['path']);
+        foreach ($paths as $path) {
+            $this->addLocation($path);
         }
 
         return $this;
@@ -311,7 +310,6 @@ class DiscoveryManager
         foreach ($this->getLocations() as $location) {
             $debugInfo['locations'][] = [
                 'path' => $location->getPath(),
-                'namespace' => $location->getNamespace(),
                 'exists' => is_dir($location->getPath()),
             ];
         }

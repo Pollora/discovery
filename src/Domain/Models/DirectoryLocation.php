@@ -18,20 +18,10 @@ final readonly class DirectoryLocation implements \Stringable, DiscoveryLocation
      * Create a new directory location
      *
      * @param  string  $path  The filesystem path to discover in
-     * @param  string|null  $namespace  Optional namespace (defaults to empty)
      */
     public function __construct(
-        private string $path,
-        private ?string $namespace = null
+        private string $path
     ) {}
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getNamespace(): string
-    {
-        return $this->namespace ?? '';
-    }
 
     /**
      * {@inheritDoc}
@@ -56,7 +46,7 @@ final readonly class DirectoryLocation implements \Stringable, DiscoveryLocation
      */
     public function getKey(): string
     {
-        return md5($this->namespace.':'.$this->path);
+        return md5($this->path);
     }
 
     /**
@@ -68,36 +58,12 @@ final readonly class DirectoryLocation implements \Stringable, DiscoveryLocation
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function toClassName(string $filePath): string
-    {
-        // If no namespace is provided, we can't convert to class name
-        if (in_array($this->namespace, [null, '', '0'], true)) {
-            return '';
-        }
-
-        // Get relative path from the base path
-        $relativePath = str_replace($this->path, '', $filePath);
-        $relativePath = ltrim($relativePath, '/\\');
-
-        // Remove .php extension
-        $relativePath = preg_replace('/\.php$/', '', $relativePath);
-
-        // Convert path separators to namespace separators
-        $classPath = str_replace(['/', '\\'], '\\', $relativePath);
-
-        // Combine namespace with class path
-        return $this->namespace.'\\'.$classPath;
-    }
-
-    /**
      * Get a string representation of the location
      *
      * @return string The string representation of the location
      */
     public function __toString(): string
     {
-        return in_array($this->namespace, [null, '', '0'], true) ? $this->path : "{$this->namespace}:{$this->path}";
+        return $this->path;
     }
 }
