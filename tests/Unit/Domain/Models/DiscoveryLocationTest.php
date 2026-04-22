@@ -2,98 +2,66 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Discovery\Domain\Models;
-
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
-use Tests\TestCase;
 
-/**
- * Discovery Location Test
- *
- * Tests the DiscoveryLocation domain model functionality including
- * path resolution, namespace handling, and class name conversion.
- */
-final class DiscoveryLocationTest extends TestCase
-{
-    public function test_can_create_discovery_location(): void
-    {
+describe('DiscoveryLocation', function (): void {
+    it('can create discovery location', function (): void {
         $location = new DiscoveryLocation('App\\Models', '/path/to/models');
 
-        $this->assertEquals('App\\Models', $location->getNamespace());
-        $this->assertEquals('/path/to/models', $location->getPath());
-    }
+        expect($location->getNamespace())->toBe('App\\Models');
+        expect($location->getPath())->toBe('/path/to/models');
+    });
 
-    public function test_generates_unique_key(): void
-    {
+    it('generates unique key based on path', function (): void {
         $location1 = new DiscoveryLocation('App\\Models', '/path/to/models');
         $location2 = new DiscoveryLocation('App\\Services', '/path/to/models');
         $location3 = new DiscoveryLocation('App\\Models', '/path/to/services');
 
-        // Same path should generate same key regardless of namespace
-        $this->assertEquals($location1->getKey(), $location2->getKey());
+        expect($location1->getKey())->toBe($location2->getKey());
+        expect($location1->getKey())->not->toBe($location3->getKey());
+    });
 
-        // Different paths should generate different keys
-        $this->assertNotEquals($location1->getKey(), $location3->getKey());
-    }
-
-    public function test_detects_vendor_locations(): void
-    {
+    it('detects vendor locations', function (): void {
         $vendorLocation = new DiscoveryLocation('Vendor\\Package', '/path/to/vendor/package');
         $appLocation = new DiscoveryLocation('App\\Models', '/path/to/app/models');
 
-        $this->assertTrue($vendorLocation->isVendor());
-        $this->assertFalse($appLocation->isVendor());
-    }
+        expect($vendorLocation->isVendor())->toBeTrue();
+        expect($appLocation->isVendor())->toBeFalse();
+    });
 
-    public function test_detects_vendor_locations_windows_path(): void
-    {
+    it('detects vendor locations with windows path', function (): void {
         $vendorLocation = new DiscoveryLocation('Vendor\\Package', 'C:\\path\\to\\vendor\\package');
 
-        $this->assertTrue($vendorLocation->isVendor());
-    }
+        expect($vendorLocation->isVendor())->toBeTrue();
+    });
 
-    public function test_converts_file_path_to_class_name(): void
-    {
+    it('converts file path to class name', function (): void {
         $location = new DiscoveryLocation('App\\Models', '/app/Models');
 
-        $className = $location->toClassName('/app/Models/User.php');
+        expect($location->toClassName('/app/Models/User.php'))->toBe('App\\Models\\User');
+    });
 
-        $this->assertEquals('App\\Models\\User', $className);
-    }
-
-    public function test_converts_nested_file_path_to_class_name(): void
-    {
+    it('converts nested file path to class name', function (): void {
         $location = new DiscoveryLocation('App\\Services', '/app/Services');
 
-        $className = $location->toClassName('/app/Services/Auth/UserService.php');
+        expect($location->toClassName('/app/Services/Auth/UserService.php'))->toBe('App\\Services\\Auth\\UserService');
+    });
 
-        $this->assertEquals('App\\Services\\Auth\\UserService', $className);
-    }
-
-    public function test_returns_empty_string_for_file_outside_location(): void
-    {
+    it('returns empty string for file outside location', function (): void {
         $location = new DiscoveryLocation('App\\Models', '/app/Models');
 
-        $className = $location->toClassName('/app/Services/UserService.php');
+        expect($location->toClassName('/app/Services/UserService.php'))->toBe('');
+    });
 
-        $this->assertEquals('', $className);
-    }
-
-    public function test_handles_windows_paths_in_class_name_conversion(): void
-    {
+    it('handles windows paths in class name conversion', function (): void {
         $location = new DiscoveryLocation('App\\Models', 'C:\\app\\Models');
 
-        $className = $location->toClassName('C:\\app\\Models\\Auth\\User.php');
+        expect($location->toClassName('C:\\app\\Models\\Auth\\User.php'))->toBe('App\\Models\\Auth\\User');
+    });
 
-        $this->assertEquals('App\\Models\\Auth\\User', $className);
-    }
-
-    public function test_trims_namespace_slashes(): void
-    {
+    it('trims namespace slashes', function (): void {
         $location = new DiscoveryLocation('App\\Models\\', '/app/Models');
 
-        $className = $location->toClassName('/app/Models/User.php');
-
-        $this->assertEquals('App\\Models\\User', $className);
-    }
-}
+        expect($location->toClassName('/app/Models/User.php'))->toBe('App\\Models\\User');
+    });
+});

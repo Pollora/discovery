@@ -2,80 +2,62 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Discovery\Domain\Models;
-
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
-use Tests\TestCase;
 
-/**
- * Discovery Items Test
- *
- * Tests the DiscoveryItems domain model functionality including
- * item management, location-based organization, and iteration.
- */
-final class DiscoveryItemsTest extends TestCase
-{
-    public function test_can_create_empty_discovery_items(): void
-    {
+describe('DiscoveryItems', function (): void {
+    it('can create empty discovery items', function (): void {
         $items = new DiscoveryItems;
 
-        $this->assertFalse($items->isLoaded());
-        $this->assertCount(0, $items);
-        $this->assertEquals([], $items->all());
-    }
+        expect($items->isLoaded())->toBeFalse();
+        expect($items)->toHaveCount(0);
+        expect($items->all())->toBe([]);
+    });
 
-    public function test_can_create_discovery_items_with_initial_data(): void
-    {
-        $initialData = [
+    it('can create with initial data', function (): void {
+        $items = new DiscoveryItems([
             'location1' => ['item1', 'item2'],
             'location2' => ['item3'],
-        ];
+        ]);
 
-        $items = new DiscoveryItems($initialData);
+        expect($items->isLoaded())->toBeTrue();
+        expect($items)->toHaveCount(3);
+        expect($items->all())->toEqual(['item1', 'item2', 'item3']);
+    });
 
-        $this->assertTrue($items->isLoaded());
-        $this->assertCount(3, $items);
-        $this->assertEquals(['item1', 'item2', 'item3'], $items->all());
-    }
-
-    public function test_can_add_single_item_for_location(): void
-    {
+    it('can add single item for location', function (): void {
         $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->add($location, 'test-item');
 
-        $this->assertTrue($items->hasLocation($location));
-        $this->assertEquals(['test-item'], $items->getForLocation($location));
-        $this->assertCount(1, $items);
-    }
+        expect($items->hasLocation($location))->toBeTrue();
+        expect($items->getForLocation($location))->toEqual(['test-item']);
+        expect($items)->toHaveCount(1);
+    });
 
-    public function test_can_add_multiple_items_for_location(): void
-    {
+    it('can add multiple items for location', function (): void {
         $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->addForLocation($location, ['item1', 'item2', 'item3']);
 
-        $this->assertEquals(['item1', 'item2', 'item3'], $items->getForLocation($location));
-        $this->assertCount(3, $items);
-    }
+        expect($items->getForLocation($location))->toEqual(['item1', 'item2', 'item3']);
+        expect($items)->toHaveCount(3);
+    });
 
-    public function test_can_add_items_to_existing_location(): void
-    {
+    it('can add items to existing location', function (): void {
         $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->add($location, 'item1');
         $items->addForLocation($location, ['item2', 'item3']);
 
-        $this->assertEquals(['item1', 'item2', 'item3'], $items->getForLocation($location));
-        $this->assertCount(3, $items);
-    }
+        expect($items->getForLocation($location))->toEqual(['item1', 'item2', 'item3']);
+        expect($items)->toHaveCount(3);
+    });
 
-    public function test_can_handle_multiple_locations(): void
-    {
+    it('handles multiple locations', function (): void {
         $items = new DiscoveryItems;
         $location1 = new DiscoveryLocation('App\\Models', '/app/models');
         $location2 = new DiscoveryLocation('App\\Services', '/app/services');
@@ -83,25 +65,21 @@ final class DiscoveryItemsTest extends TestCase
         $items->addForLocation($location1, ['model1', 'model2']);
         $items->addForLocation($location2, ['service1']);
 
-        $this->assertCount(3, $items);
-        $this->assertEquals(['model1', 'model2'], $items->getForLocation($location1));
-        $this->assertEquals(['service1'], $items->getForLocation($location2));
-        $this->assertEquals(['model1', 'model2', 'service1'], $items->all());
-    }
+        expect($items)->toHaveCount(3);
+        expect($items->getForLocation($location1))->toEqual(['model1', 'model2']);
+        expect($items->getForLocation($location2))->toEqual(['service1']);
+        expect($items->all())->toEqual(['model1', 'model2', 'service1']);
+    });
 
-    public function test_returns_empty_array_for_unknown_location(): void
-    {
+    it('returns empty array for unknown location', function (): void {
         $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
-        $result = $items->getForLocation($location);
+        expect($items->getForLocation($location))->toBe([]);
+        expect($items->hasLocation($location))->toBeFalse();
+    });
 
-        $this->assertEquals([], $result);
-        $this->assertFalse($items->hasLocation($location));
-    }
-
-    public function test_can_iterate_over_all_items(): void
-    {
+    it('can iterate over all items', function (): void {
         $items = new DiscoveryItems;
         $location1 = new DiscoveryLocation('App\\Models', '/app/models');
         $location2 = new DiscoveryLocation('App\\Services', '/app/services');
@@ -114,30 +92,26 @@ final class DiscoveryItemsTest extends TestCase
             $iteratedItems[] = $item;
         }
 
-        $this->assertEquals(['model1', 'model2', 'service1'], $iteratedItems);
-    }
+        expect($iteratedItems)->toEqual(['model1', 'model2', 'service1']);
+    });
 
-    public function test_serialization_and_unserialization(): void
-    {
+    it('supports serialization and unserialization', function (): void {
         $items = new DiscoveryItems;
         $location = new DiscoveryLocation('App\\Models', '/app/models');
 
         $items->addForLocation($location, ['item1', 'item2']);
 
-        // Test serialization
         $serialized = $items->__serialize();
-        $this->assertIsArray($serialized);
+        expect($serialized)->toBeArray();
 
-        // Test unserialization
         $newItems = new DiscoveryItems;
         $newItems->__unserialize($serialized);
 
-        $this->assertEquals($items->all(), $newItems->all());
-        $this->assertEquals($items->count(), $newItems->count());
-    }
+        expect($newItems->all())->toEqual($items->all());
+        expect($newItems->count())->toBe($items->count());
+    });
 
-    public function test_only_vendor_returns_new_instance(): void
-    {
+    it('onlyVendor returns new instance', function (): void {
         $items = new DiscoveryItems([
             'location1' => ['item1'],
             'location2' => ['item2'],
@@ -145,7 +119,7 @@ final class DiscoveryItemsTest extends TestCase
 
         $vendorItems = $items->onlyVendor();
 
-        $this->assertNotSame($items, $vendorItems);
-        $this->assertInstanceOf(DiscoveryItems::class, $vendorItems);
-    }
-}
+        expect($vendorItems)->not->toBe($items);
+        expect($vendorItems)->toBeInstanceOf(DiscoveryItems::class);
+    });
+});
