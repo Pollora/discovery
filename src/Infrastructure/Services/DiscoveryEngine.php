@@ -105,7 +105,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         // Check for duplicate locations (same path)
         $locationPath = realpath($location->getPath()) ?: $location->getPath();
 
-        $isDuplicate = $this->locations->contains(function (DiscoveryLocationInterface $existingLocation) use ($locationPath) {
+        $isDuplicate = $this->locations->contains(function (DiscoveryLocationInterface $existingLocation) use ($locationPath): bool {
             $existingPath = realpath($existingLocation->getPath()) ?: $existingLocation->getPath();
 
             return $existingPath === $locationPath;

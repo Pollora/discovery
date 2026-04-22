@@ -15,18 +15,6 @@ use Exception;
 class DiscoveryException extends Exception
 {
     /**
-     * Create a new discovery exception
-     *
-     * @param  string  $message  The exception message
-     * @param  int  $code  The exception code
-     * @param  \Throwable|null  $previous  Previous exception for chaining
-     */
-    public function __construct(string $message = '', int $code = 0, ?\Throwable $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
-    }
-
-    /**
      * Create exception for discovery process failure
      *
      * @param  string  $discoveryClass  The discovery class that failed
