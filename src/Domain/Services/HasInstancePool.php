@@ -45,7 +45,7 @@ trait HasInstancePool
             return $fallback();
         }
 
-        return app($className);
+        return resolve($className);
     }
 
     /**
