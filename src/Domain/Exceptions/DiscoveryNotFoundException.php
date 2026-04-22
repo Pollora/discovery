@@ -19,7 +19,7 @@ class DiscoveryNotFoundException extends DiscoveryException
      */
     public static function withIdentifier(string $identifier): static
     {
-        return new static("Discovery not found with identifier: {$identifier}");
+        return new static('Discovery not found with identifier: '.$identifier);
     }
 
     /**
@@ -29,6 +29,6 @@ class DiscoveryNotFoundException extends DiscoveryException
      */
     public static function withClass(string $discoveryClass): static
     {
-        return new static("Discovery class not found: {$discoveryClass}");
+        return new static('Discovery class not found: '.$discoveryClass);
     }
 }

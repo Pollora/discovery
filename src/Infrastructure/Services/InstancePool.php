@@ -83,7 +83,7 @@ final class InstancePool
         if (isset($this->instantiating[$className])) {
             $this->stats['circular_dependencies']++;
             throw new CircularDependencyException(
-                "Circular dependency detected while instantiating: {$className}"
+                'Circular dependency detected while instantiating: '.$className
             );
         }
 
@@ -102,16 +102,16 @@ final class InstancePool
 
             return $instance;
 
-        } catch (\Throwable $e) {
+        } catch (\Throwable $throwable) {
             // Clean up instantiating state on error
             unset($this->instantiating[$className]);
 
             $this->stats['errors']++;
 
             throw new \RuntimeException(
-                "Failed to instantiate class {$className}: {$e->getMessage()}",
-                $e->getCode(),
-                $e
+                sprintf('Failed to instantiate class %s: %s', $className, $throwable->getMessage()),
+                $throwable->getCode(),
+                $throwable
             );
         }
     }

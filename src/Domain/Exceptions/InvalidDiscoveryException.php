@@ -20,7 +20,7 @@ class InvalidDiscoveryException extends DiscoveryException
      */
     public static function invalidClass(string $discoveryClass, string $reason): static
     {
-        return new static("Invalid discovery class '{$discoveryClass}': {$reason}");
+        return new static(sprintf("Invalid discovery class '%s': %s", $discoveryClass, $reason));
     }
 
     /**
@@ -32,7 +32,7 @@ class InvalidDiscoveryException extends DiscoveryException
     public static function missingInterface(string $discoveryClass, string $requiredInterface): static
     {
         return new static(
-            "Discovery class '{$discoveryClass}' must implement '{$requiredInterface}'"
+            sprintf("Discovery class '%s' must implement '%s'", $discoveryClass, $requiredInterface)
         );
     }
 
@@ -43,6 +43,6 @@ class InvalidDiscoveryException extends DiscoveryException
      */
     public static function duplicateIdentifier(string $identifier): static
     {
-        return new static("Discovery identifier '{$identifier}' is already registered");
+        return new static(sprintf("Discovery identifier '%s' is already registered", $identifier));
     }
 }

@@ -79,7 +79,7 @@ final class ReflectionCache implements ReflectionCacheInterface
             try {
                 // Check if class exists and can be autoloaded first
                 if (! class_exists($className, true)) {
-                    throw new ReflectionException("Class {$className} does not exist or cannot be autoloaded");
+                    throw new ReflectionException(sprintf('Class %s does not exist or cannot be autoloaded', $className));
                 }
 
                 $this->classReflections[$className] = new ReflectionClass($className);
@@ -89,7 +89,7 @@ final class ReflectionCache implements ReflectionCacheInterface
                 $this->processedClasses[$className] = true;
 
                 throw new ReflectionException(
-                    "Failed to create reflection for class {$className}: {$e->getMessage()}",
+                    sprintf('Failed to create reflection for class %s: %s', $className, $e->getMessage()),
                     $e->getCode(),
                     $e
                 );
@@ -139,18 +139,18 @@ final class ReflectionCache implements ReflectionCacheInterface
 
                 if ($reflection->isAbstract() || $reflection->isInterface() || $reflection->isTrait()) {
                     throw new \InvalidArgumentException(
-                        "Cannot instantiate abstract class, interface, or trait: {$className}"
+                        'Cannot instantiate abstract class, interface, or trait: '.$className
                     );
                 }
 
                 if (! $reflection->isInstantiable()) {
-                    throw new \InvalidArgumentException("Class {$className} is not instantiable");
+                    throw new \InvalidArgumentException(sprintf('Class %s is not instantiable', $className));
                 }
 
                 $this->classInstances[$className] = $this->container->make($className);
             } catch (\Throwable $e) {
                 throw new \RuntimeException(
-                    "Failed to instantiate class {$className}: {$e->getMessage()}",
+                    sprintf('Failed to instantiate class %s: %s', $className, $e->getMessage()),
                     $e->getCode(),
                     $e
                 );
