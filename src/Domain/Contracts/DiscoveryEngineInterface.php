@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pollora\Discovery\Domain\Contracts;
 
 use Illuminate\Support\Collection;
+use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
+use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 
 /**
  * Discovery Engine Interface
@@ -61,7 +63,7 @@ interface DiscoveryEngineInterface
      *
      * @return static Returns self for method chaining
      *
-     * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryException When discovery fails
+     * @throws DiscoveryException When discovery fails
      */
     public function discover(): static;
 
@@ -73,7 +75,7 @@ interface DiscoveryEngineInterface
      *
      * @return static Returns self for method chaining
      *
-     * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryException When application fails
+     * @throws DiscoveryException When application fails
      */
     public function apply(): static;
 
@@ -84,7 +86,7 @@ interface DiscoveryEngineInterface
      *
      * @return static Returns self for method chaining
      *
-     * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryException When discovery or application fails
+     * @throws DiscoveryException When discovery or application fails
      */
     public function run(): static;
 
@@ -94,7 +96,7 @@ interface DiscoveryEngineInterface
      * @param  string  $identifier  The discovery identifier
      * @return DiscoveryInterface The discovery instance
      *
-     * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException When discovery not found
+     * @throws DiscoveryNotFoundException When discovery not found
      */
     public function getDiscovery(string $identifier): DiscoveryInterface;
 

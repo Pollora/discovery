@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Domain\Contracts;
 
+use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 /**
@@ -57,7 +58,7 @@ interface DiscoveryInterface
      * This method is called after discovery is complete to apply/register
      * all discovered items with the application (service container, registries, etc.).
      *
-     * @throws \Pollora\Discovery\Domain\Exceptions\DiscoveryException When application fails
+     * @throws DiscoveryException When application fails
      */
     public function apply(): void;
 

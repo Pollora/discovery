@@ -19,6 +19,8 @@ use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
+use Spatie\StructureDiscoverer\Data\DiscoveredClass;
+use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 use Spatie\StructureDiscoverer\Discover;
 
 /**
@@ -348,7 +350,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Discover all structures from all locations using Spatie's discoverer.
      *
-     * @return array<\Spatie\StructureDiscoverer\Data\DiscoveredStructure> All discovered structures
+     * @return array<DiscoveredStructure> All discovered structures
      */
     private function discoverAllStructures(): array
     {
@@ -369,7 +371,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Process structures using unified approach to minimize redundant operations.
      *
-     * @param  array<\Spatie\StructureDiscoverer\Data\DiscoveredStructure>  $structures  All discovered structures
+     * @param  array<DiscoveredStructure>  $structures  All discovered structures
      */
     private function processStructuresUnified(array $structures): void
     {
@@ -377,7 +379,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $structuresByClass = [];
 
         foreach ($structures as $structure) {
-            if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass &&
+            if ($structure instanceof DiscoveredClass &&
                 ! $structure->isAbstract) {
                 $className = $structure->namespace.'\\'.$structure->name;
                 $structuresByClass[$className] = [
@@ -409,12 +411,12 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Process a single class for all applicable discoveries.
      *
-     * @param  \Spatie\StructureDiscoverer\Data\DiscoveredClass  $structure  The discovered structure
+     * @param  DiscoveredClass  $structure  The discovered structure
      * @param  DiscoveryLocationInterface  $location  The discovery location
      * @param  string  $className  The fully qualified class name
      */
     private function processClassForAllDiscoveries(
-        \Spatie\StructureDiscoverer\Data\DiscoveredClass $structure,
+        DiscoveredClass $structure,
         DiscoveryLocationInterface $location,
         string $className
     ): void {
@@ -470,14 +472,14 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * Check if a discovery needs reflection data.
      *
      * @param  DiscoveryInterface  $discovery  The discovery instance
-     * @param  \Spatie\StructureDiscoverer\Data\DiscoveredClass  $structure  The discovered structure
+     * @param  DiscoveredClass  $structure  The discovered structure
      * @return bool True if reflection is needed
      */
-    private function discoveryNeedsReflection(DiscoveryInterface $discovery, \Spatie\StructureDiscoverer\Data\DiscoveredClass $structure): bool
+    private function discoveryNeedsReflection(DiscoveryInterface $discovery, DiscoveredClass $structure): bool
     {
         // ServiceProviderDiscovery has specific logic for checking class hierarchy
         // Let it handle reflection internally to avoid dependency loading issues
-        if ($discovery instanceof \Pollora\Discovery\Infrastructure\Services\ServiceProviderDiscovery) {
+        if ($discovery instanceof ServiceProviderDiscovery) {
             return false;
         }
 
@@ -561,7 +563,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private function shouldUseCache(): bool
     {
-        return $this->cacheDriver instanceof \Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
+        return $this->cacheDriver instanceof DiscoverCacheDriver && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
     }
 
     /**

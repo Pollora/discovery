@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pollora\Discovery\Domain\Models;
 
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
+use Spatie\StructureDiscoverer\Data\DiscoveredClass;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 /**
@@ -162,7 +163,7 @@ final class DiscoveryContext
         $classNames = [];
 
         foreach ($structures as $structure) {
-            if ($structure instanceof \Spatie\StructureDiscoverer\Data\DiscoveredClass &&
+            if ($structure instanceof DiscoveredClass &&
                 ! $structure->isAbstract) {
                 $classNames[] = $structure->namespace.'\\'.$structure->name;
             }
