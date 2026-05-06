@@ -350,7 +350,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Discover all structures from all locations using Spatie's discoverer.
      *
-     * @return array<DiscoveredStructure> All discovered structures
+     * @return array<array{structure: DiscoveredStructure, location: DiscoveryLocationInterface}> All discovered structures with their locations
      */
     private function discoverAllStructures(): array
     {
@@ -360,8 +360,10 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $structures = $this->getStructuresForLocation($location);
 
             foreach ($structures as $structure) {
-                $structure->location = $location;
-                $allStructures[] = $structure;
+                $allStructures[] = [
+                    'structure' => $structure,
+                    'location' => $location,
+                ];
             }
         }
 
@@ -371,20 +373,21 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Process structures using unified approach to minimize redundant operations.
      *
-     * @param  array<DiscoveredStructure>  $structures  All discovered structures
+     * @param  array<array{structure: DiscoveredStructure, location: DiscoveryLocationInterface}>  $structures  All discovered structures with their locations
      */
     private function processStructuresUnified(array $structures): void
     {
         // Group structures by class name for batch processing
         $structuresByClass = [];
 
-        foreach ($structures as $structure) {
+        foreach ($structures as $entry) {
+            $structure = $entry['structure'];
             if ($structure instanceof DiscoveredClass &&
                 ! $structure->isAbstract) {
                 $className = $structure->namespace.'\\'.$structure->name;
                 $structuresByClass[$className] = [
                     'structure' => $structure,
-                    'location' => $structure->location,
+                    'location' => $entry['location'],
                 ];
             }
         }
