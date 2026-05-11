@@ -18,11 +18,8 @@ use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
-use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
-use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Data\DiscoveredClass;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
-use Spatie\StructureDiscoverer\Discover;
 
 /**
  * Discovery Engine
@@ -38,13 +35,6 @@ use Spatie\StructureDiscoverer\Discover;
  */
 final class DiscoveryEngine implements DiscoveryEngineInterface
 {
-    /**
-     * Static cache for discovered structures to avoid repeated scans
-     *
-     * @var array<string, mixed>
-     */
-    private static array $structuresCache = [];
-
     /**
      * Collection of discovery locations
      *
@@ -70,9 +60,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     private readonly InstancePool $instancePool;
 
     /**
-     * Cache driver for Spatie's structure discovery
+     * Cache manager for Spatie's structure discovery
      */
-    private ?DiscoverCacheDriver $cacheDriver = null;
+    private readonly DiscoveryCacheManager $cacheManager;
 
     /**
      * Create a new discovery engine
@@ -82,13 +72,15 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * @param  ReflectionCacheInterface|null  $reflectionCache  Optional reflection cache
      * @param  InstancePool|null  $instancePool  Optional instance pool
      * @param  LoggerInterface|null  $logger  Optional PSR-3 logger
+     * @param  DiscoveryCacheManager|null  $cacheManager  Optional cache manager
      */
     public function __construct(
         private readonly Container $container,
-        private readonly DebugDetectorInterface $debugDetector,
+        DebugDetectorInterface $debugDetector,
         ?ReflectionCacheInterface $reflectionCache = null,
         ?InstancePool $instancePool = null,
-        private readonly ?LoggerInterface $logger = null
+        private readonly ?LoggerInterface $logger = null,
+        ?DiscoveryCacheManager $cacheManager = null
     ) {
         $this->locations = new Collection;
         $this->discoveries = new Collection;
@@ -97,7 +89,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $reflectionCache ??= new ReflectionCache($container);
         $this->instancePool = $instancePool ?? new InstancePool($container);
         $this->context = new DiscoveryContext($reflectionCache);
-        $this->cacheDriver = $this->resolveCacheDriver();
+        $this->cacheManager = $cacheManager ?? new DiscoveryCacheManager($container, $debugDetector);
     }
 
     /**
@@ -260,7 +252,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $reflectionCache = $this->context->getReflectionCache();
 
         foreach ($this->locations as $location) {
-            $structures = $this->getStructuresForLocation($location);
+            $structures = $this->cacheManager->getStructuresForLocation($location, $this->context);
 
             foreach ($structures as $structure) {
                 $discovery->discover($location, $structure, $reflectionCache);
@@ -287,8 +279,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function clearCache(): static
     {
-        // Only clear the persistent Spatie cache
-        $this->clearSpatieCache();
+        $this->cacheManager->clearCache($this->locations);
 
         return $this;
     }
@@ -360,9 +351,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $allStructures = [];
 
         foreach ($this->locations as $location) {
-            $structures = $this->getStructuresForLocation($location);
+            $locationStructures = $this->cacheManager->getStructuresForLocation($location, $this->context);
 
-            foreach ($structures as $structure) {
+            foreach ($locationStructures as $structure) {
                 $allStructures[] = [
                     'structure' => $structure,
                     'location' => $location,
@@ -520,7 +511,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         return [
             'context' => $this->context->getSummary(),
             'instance_pool' => $this->instancePool->getStats(),
-            'static_cache_size' => count(self::$structuresCache),
+            'static_cache_size' => $this->cacheManager->getStaticCacheSize(),
         ];
     }
 
@@ -538,116 +529,19 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     }
 
     /**
-     * Resolve the cache driver from Laravel configuration
-     */
-    private function resolveCacheDriver(): ?DiscoverCacheDriver
-    {
-        if ($this->debugDetector->isDebugMode()) {
-            return new NullDiscoverCacheDriver;
-        }
-
-        // Get cache configuration from structure-discoverer config
-        $cacheConfig = config('structure-discoverer.cache', []);
-        $driverClass = $cacheConfig['driver'] ?? LaravelDiscoverCacheDriver::class;
-        $store = $cacheConfig['store'] ?? null;
-
-        if ($driverClass === LaravelDiscoverCacheDriver::class) {
-            return new LaravelDiscoverCacheDriver(prefix: 'pollora', store: $store);
-        }
-
-        // For custom drivers, try to instantiate via container
-        try {
-            return $this->container->make($driverClass);
-        } catch (\Throwable) {
-            // Fallback to Laravel driver if custom driver fails
-            return new LaravelDiscoverCacheDriver(prefix: 'pollora', store: $store);
-        }
-    }
-
-    /**
-     * Determine if caching should be used
-     */
-    private function shouldUseCache(): bool
-    {
-        return $this->cacheDriver instanceof DiscoverCacheDriver && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
-    }
-
-    /**
-     * Clear Spatie's structure discoverer cache
-     */
-    private function clearSpatieCache(): void
-    {
-        // Clear all cached discovery structures by iterating through known cache IDs
-        foreach ($this->locations as $location) {
-            $cacheId = $this->generateCacheId($location);
-            $this->cacheDriver->forget($cacheId);
-        }
-    }
-
-    /**
      * Get the cache driver instance
      */
     public function getCacheDriver(): ?DiscoverCacheDriver
     {
-        return $this->cacheDriver;
+        return $this->cacheManager->getCacheDriver();
     }
 
     /**
-     * Get structures for a specific location with caching
-     *
-     * @param  DiscoveryLocationInterface  $location  The discovery location
-     * @return array<mixed> The discovered structures
+     * Get the cache manager instance
      */
-    private function getStructuresForLocation(DiscoveryLocationInterface $location): array
+    public function getCacheManager(): DiscoveryCacheManager
     {
-        $cacheId = $this->generateCacheId($location);
-
-        // Check static cache first
-        if (isset(self::$structuresCache[$cacheId])) {
-            $this->context->recordCacheHit();
-
-            return self::$structuresCache[$cacheId];
-        }
-
-        $this->context->recordCacheMiss();
-
-        // Create Spatie discoverer instance
-        $discover = $this->createSpatieDiscoverer($location, $cacheId);
-        $structures = $discover->get();
-
-        // Cache in memory for future use
-        self::$structuresCache[$cacheId] = $structures;
-
-        return $structures;
-    }
-
-    /**
-     * Create a configured Spatie discoverer instance
-     *
-     * @param  DiscoveryLocationInterface  $location  The discovery location
-     * @param  string  $cacheId  The cache identifier
-     * @return Discover The configured discoverer
-     */
-    private function createSpatieDiscoverer(DiscoveryLocationInterface $location, string $cacheId): Discover
-    {
-        $discover = Discover::in($location->getPath())->full();
-
-        if ($this->shouldUseCache()) {
-            return $discover->withCache($cacheId, $this->cacheDriver);
-        }
-
-        return $discover;
-    }
-
-    /**
-     * Generate cache ID for a discovery location
-     *
-     * @param  DiscoveryLocationInterface  $location  The discovery location
-     * @return string The cache identifier
-     */
-    private function generateCacheId(DiscoveryLocationInterface $location): string
-    {
-        return 'discovery_'.md5($location->getPath());
+        return $this->cacheManager;
     }
 
     /**
