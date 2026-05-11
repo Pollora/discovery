@@ -16,6 +16,7 @@ use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
+use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
@@ -80,12 +81,14 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * @param  DebugDetectorInterface  $debugDetector  Debug mode detector
      * @param  ReflectionCacheInterface|null  $reflectionCache  Optional reflection cache
      * @param  InstancePool|null  $instancePool  Optional instance pool
+     * @param  LoggerInterface|null  $logger  Optional PSR-3 logger
      */
     public function __construct(
         private readonly Container $container,
         private readonly DebugDetectorInterface $debugDetector,
         ?ReflectionCacheInterface $reflectionCache = null,
-        ?InstancePool $instancePool = null
+        ?InstancePool $instancePool = null,
+        private readonly ?LoggerInterface $logger = null
     ) {
         $this->locations = new Collection;
         $this->discoveries = new Collection;
@@ -656,10 +659,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     private function logDiscoveryError(string $context, \Throwable $exception, bool $includeStackTrace = true): void
     {
-        error_log(sprintf('%s: %s', $context, $exception->getMessage()));
-
-        if ($includeStackTrace) {
-            error_log('Stack trace: '.$exception->getTraceAsString());
-        }
+        $this->logger?->error(sprintf('%s: %s', $context, $exception->getMessage()), [
+            'exception' => $exception,
+        ]);
     }
 }
