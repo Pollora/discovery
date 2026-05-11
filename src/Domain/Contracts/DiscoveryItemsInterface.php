@@ -74,4 +74,11 @@ interface DiscoveryItemsInterface extends Countable, IteratorAggregate
      * @return array<mixed> All discovered items
      */
     public function all(): array;
+
+    /**
+     * Serialize the discovery items for caching.
+     *
+     * @return array<string, mixed>
+     */
+    public function __serialize(): array;
 }
