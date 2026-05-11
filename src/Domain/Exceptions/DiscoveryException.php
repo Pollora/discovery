@@ -20,9 +20,9 @@ class DiscoveryException extends Exception
      * @param  string  $discoveryClass  The discovery class that failed
      * @param  \Throwable|null  $previous  Previous exception for chaining
      */
-    public static function discoveryFailed(string $discoveryClass, ?\Throwable $previous = null): static
+    public static function discoveryFailed(string $discoveryClass, ?\Throwable $previous = null): self
     {
-        return new static(
+        return new self(
             message: 'Discovery failed for class: '.$discoveryClass,
             previous: $previous
         );
@@ -34,9 +34,9 @@ class DiscoveryException extends Exception
      * @param  string  $discoveryClass  The discovery class that failed to apply
      * @param  \Throwable|null  $previous  Previous exception for chaining
      */
-    public static function applicationFailed(string $discoveryClass, ?\Throwable $previous = null): static
+    public static function applicationFailed(string $discoveryClass, ?\Throwable $previous = null): self
     {
-        return new static(
+        return new self(
             message: 'Failed to apply discovery for class: '.$discoveryClass,
             previous: $previous
         );
