@@ -454,14 +454,14 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
                 } catch (\Throwable $e) {
                     $this->context->recordError();
-                    $this->logDiscoveryError(sprintf('Discovery %s for class %s', $discoveryId, $className), $e, false);
+                    $this->logDiscoveryError(sprintf('Discovery %s for class %s', $discoveryId, $className), $e);
                     // Continue with other discoveries
                 }
             }
 
         } catch (\Throwable $throwable) {
             $this->context->recordError();
-            $this->logDiscoveryError('Failed to process class '.$className, $throwable, false);
+            $this->logDiscoveryError('Failed to process class '.$className, $throwable);
         }
     }
 
@@ -549,9 +549,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      *
      * @param  string  $context  The error context
      * @param  \Throwable  $exception  The exception
-     * @param  bool  $includeStackTrace  Whether to include stack trace
      */
-    private function logDiscoveryError(string $context, \Throwable $exception, bool $includeStackTrace = true): void
+    private function logDiscoveryError(string $context, \Throwable $exception): void
     {
         $this->logger?->error(sprintf('%s: %s', $context, $exception->getMessage()), [
             'exception' => $exception,

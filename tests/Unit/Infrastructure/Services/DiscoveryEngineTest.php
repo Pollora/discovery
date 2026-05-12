@@ -97,7 +97,7 @@ describe('DiscoveryEngine', function (): void {
 
             $engine->addDiscovery('dup', $discovery);
 
-            expect(fn () => $engine->addDiscovery('dup', $discovery))
+            expect(fn (): DiscoveryEngine => $engine->addDiscovery('dup', $discovery))
                 ->toThrow(InvalidDiscoveryException::class);
         });
     });
@@ -128,7 +128,7 @@ describe('DiscoveryEngine', function (): void {
         it('throws when discovery not found', function (): void {
             $engine = createEngine();
 
-            expect(fn () => $engine->getDiscovery('nonexistent'))
+            expect(fn (): DiscoveryInterface => $engine->getDiscovery('nonexistent'))
                 ->toThrow(DiscoveryNotFoundException::class);
         });
     });
