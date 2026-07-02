@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Facade;
 use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
@@ -22,12 +23,32 @@ use Tests\Benchmark\Fixtures\FixtureGenerator;
  * Run with: vendor/bin/pest tests/Benchmark/DiscoveryPerformanceTest.php
  */
 
+/** @var Container|null */
+$__benchPreviousContainer = null;
+
+function savePreviousContainer(): void
+{
+    global $__benchPreviousContainer;
+    if ($__benchPreviousContainer === null) {
+        $__benchPreviousContainer = Container::getInstance();
+    }
+}
+
 function createBenchContainer(): Container
 {
+    savePreviousContainer();
     $container = new Container;
     Container::setInstance($container);
 
     return $container;
+}
+
+function restorePreviousContainer(): void
+{
+    global $__benchPreviousContainer;
+    if ($__benchPreviousContainer instanceof Container) {
+        Container::setInstance($__benchPreviousContainer);
+    }
 }
 
 function createBenchDebugDetector(): DebugDetectorInterface
@@ -74,6 +95,9 @@ describe('Discovery Performance', function (): void {
 
     afterEach(function (): void {
         clearDiscoveryCacheManagerStatic();
+        restorePreviousContainer();
+        Facade::clearResolvedInstances();
+        Facade::setFacadeApplication(Container::getInstance());
     });
 
     it('scans 100 classes via Spatie in under 500ms', function (): void {
