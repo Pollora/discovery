@@ -7,7 +7,6 @@ namespace Tests\Benchmark;
 use Illuminate\Container\Container;
 use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
-use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
@@ -39,7 +38,8 @@ final class DiscoveryBenchmark
         $this->container = new Container;
         Container::setInstance($this->container);
 
-        $this->debugDetector = new class implements DebugDetectorInterface {
+        $this->debugDetector = new class implements DebugDetectorInterface
+        {
             public function isDebugMode(): bool
             {
                 return true; // Force no persistent cache
@@ -52,8 +52,8 @@ final class DiscoveryBenchmark
     /**
      * Run the full benchmark suite.
      *
-     * @param int[] $classCounts Class counts to benchmark
-     * @param int $iterations Number of iterations per benchmark for averaging
+     * @param  int[]  $classCounts  Class counts to benchmark
+     * @param  int  $iterations  Number of iterations per benchmark for averaging
      */
     public function run(array $classCounts = [50, 100, 250, 500, 1000, 2000], int $iterations = 3): void
     {
@@ -110,7 +110,7 @@ final class DiscoveryBenchmark
         ];
 
         for ($i = 0; $i < $iterations; $i++) {
-            echo "  Iteration ".($i + 1)."...";
+            echo '  Iteration '.($i + 1).'...';
 
             // Clear any static caches between iterations
             $this->clearStaticCaches();
@@ -267,7 +267,7 @@ final class DiscoveryBenchmark
         $timings = ['scan' => [], 'discovery' => [], 'memory' => [], 'items' => []];
 
         for ($i = 0; $i < $iterations; $i++) {
-            echo "  Iteration ".($i + 1)."...";
+            echo '  Iteration '.($i + 1).'...';
             $this->clearStaticCaches();
 
             // Full discovery with multiple locations
@@ -376,7 +376,7 @@ final class DiscoveryBenchmark
     private function registerAutoloader(string $path, string $namespace): \Closure
     {
         $autoloader = function (string $class) use ($path, $namespace): void {
-            if (!str_starts_with($class, $namespace)) {
+            if (! str_starts_with($class, $namespace)) {
                 return;
             }
 
@@ -416,7 +416,7 @@ final class DiscoveryBenchmark
         echo "║  Measures: Spatie scan, full discovery pipeline, per-class cost.    ║\n";
         echo "╚══════════════════════════════════════════════════════════════════════╝\n";
         echo "\n";
-        echo "  PHP ".phpversion()." | Memory limit: ".ini_get('memory_limit')."\n";
+        echo '  PHP '.phpversion().' | Memory limit: '.ini_get('memory_limit')."\n";
     }
 
     private function printDistribution(array $distribution): void
@@ -425,7 +425,7 @@ final class DiscoveryBenchmark
         foreach ($distribution as $type => $count) {
             $parts[] = "{$type}: {$count}";
         }
-        echo "  Distribution: ".implode(', ', $parts)."\n";
+        echo '  Distribution: '.implode(', ', $parts)."\n";
     }
 
     private function printSummary(): void
@@ -460,7 +460,7 @@ final class DiscoveryBenchmark
             $classRatio = $last['count'] / $first['count'];
             $timeRatio = $last['full_discovery_avg_ms'] / max(0.01, $first['full_discovery_avg_ms']);
 
-            echo sprintf("    %dx classes => %.1fx time (ideal linear = %.1fx)\n", (int)$classRatio, $timeRatio, $classRatio);
+            echo sprintf("    %dx classes => %.1fx time (ideal linear = %.1fx)\n", (int) $classRatio, $timeRatio, $classRatio);
 
             if ($timeRatio > $classRatio * 1.5) {
                 echo "    => Super-linear scaling detected — optimization opportunities likely\n";

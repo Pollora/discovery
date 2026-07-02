@@ -17,7 +17,7 @@ require_once __DIR__.'/../../vendor/autoload.php';
 // Register benchmark namespace autoloader
 spl_autoload_register(function (string $class): void {
     $prefix = 'Tests\\Benchmark\\';
-    if (!str_starts_with($class, $prefix)) {
+    if (! str_starts_with($class, $prefix)) {
         return;
     }
     $relative = str_replace($prefix, '', $class);
@@ -49,5 +49,5 @@ if (in_array('--quick', $args, true)) {
     $classCounts = [50, 100, 250, 500, 1000, 2000];
 }
 
-$benchmark = new DiscoveryBenchmark();
+$benchmark = new DiscoveryBenchmark;
 $benchmark->run($classCounts, $iterations);

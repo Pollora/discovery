@@ -40,7 +40,7 @@ final class BenchmarkDiscovery implements DiscoveryInterface
         DiscoveredStructure $structure,
         ?ReflectionCacheInterface $reflectionCache = null
     ): void {
-        if (!$structure instanceof DiscoveredClass) {
+        if (! $structure instanceof DiscoveredClass) {
             return;
         }
 

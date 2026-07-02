@@ -53,7 +53,8 @@ function restorePreviousContainer(): void
 
 function createBenchDebugDetector(): DebugDetectorInterface
 {
-    return new class implements DebugDetectorInterface {
+    return new class implements DebugDetectorInterface
+    {
         public function isDebugMode(): bool
         {
             return true;
@@ -77,7 +78,7 @@ function generateAndRegister(int $count): array
     $info = $generator->generate($count);
 
     $autoloader = function (string $class) use ($basePath, $namespace): void {
-        if (!str_starts_with($class, $namespace)) {
+        if (! str_starts_with($class, $namespace)) {
             return;
         }
         $relative = str_replace($namespace.'\\', '', $class);
@@ -267,7 +268,7 @@ describe('Discovery Performance', function (): void {
             $perClassUs = $elapsedUs / 250;
 
             expect($perClassUs)->toBeLessThan(2000,
-                "Per-class cost: {$perClassUs} us (total: ".($elapsedUs/1000)." ms for 250 classes)"
+                "Per-class cost: {$perClassUs} us (total: ".($elapsedUs / 1000).' ms for 250 classes)'
             );
         } finally {
             spl_autoload_unregister($setup['autoloader']);
@@ -285,7 +286,7 @@ describe('Discovery Performance', function (): void {
         $autoloaders = [];
         foreach ($multiInfo['locations'] as $loc) {
             $al = function (string $class) use ($loc): void {
-                if (!str_starts_with($class, $loc['namespace'])) {
+                if (! str_starts_with($class, $loc['namespace'])) {
                     return;
                 }
                 $relative = str_replace($loc['namespace'].'\\', '', $class);

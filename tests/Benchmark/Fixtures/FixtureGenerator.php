@@ -38,7 +38,7 @@ final class FixtureGenerator
     /**
      * Generate a set of fixture classes.
      *
-     * @param int $count Number of classes to generate
+     * @param  int  $count  Number of classes to generate
      * @return array{path: string, namespace: string, count: int, distribution: array<string, int>}
      */
     public function generate(int $count): array
@@ -78,8 +78,8 @@ final class FixtureGenerator
      *
      * Each module is a separate discovery location (like nwidart modules).
      *
-     * @param int $totalClasses Total number of classes across all modules
-     * @param int $moduleCount Number of modules to create
+     * @param  int  $totalClasses  Total number of classes across all modules
+     * @param  int  $moduleCount  Number of modules to create
      * @return array{locations: array<array{path: string, namespace: string}>, total_classes: int, modules: int, dirs_created: int}
      */
     public function generateMultiLocation(int $totalClasses, int $moduleCount): array
@@ -93,9 +93,9 @@ final class FixtureGenerator
         $remaining = $totalClasses;
 
         for ($mod = 0; $mod < $moduleCount; $mod++) {
-            $moduleName = "Module" . chr(65 + ($mod % 26)) . ($mod >= 26 ? $mod : '');
-            $modulePath = $this->basePath . '/' . $moduleName . '/app';
-            $moduleNamespace = $this->namespace . '\\' . $moduleName . '\\App';
+            $moduleName = 'Module'.chr(65 + ($mod % 26)).($mod >= 26 ? $mod : '');
+            $modulePath = $this->basePath.'/'.$moduleName.'/app';
+            $moduleNamespace = $this->namespace.'\\'.$moduleName.'\\App';
             $classCount = min($classesPerModule, $remaining);
 
             if ($classCount <= 0) {
@@ -117,8 +117,8 @@ final class FixtureGenerator
             $moduleGenerated = 0;
 
             foreach ($subdirs as $subdir => $type) {
-                $subdirPath = $modulePath . '/' . $subdir;
-                $subdirNamespace = $moduleNamespace . '\\' . str_replace('/', '\\', $subdir);
+                $subdirPath = $modulePath.'/'.$subdir;
+                $subdirNamespace = $moduleNamespace.'\\'.str_replace('/', '\\', $subdir);
 
                 $subdirCount = min($perSubdir, $classCount - $moduleGenerated);
                 if ($subdirCount <= 0) {
@@ -132,7 +132,7 @@ final class FixtureGenerator
                     $globalIndex = $totalGenerated + $moduleGenerated + $i;
                     $className = $this->classNameForType($type, $globalIndex);
                     $content = $this->generateClassContent($type, $className, $globalIndex, $subdirNamespace);
-                    file_put_contents($subdirPath . '/' . $className . '.php', $content);
+                    file_put_contents($subdirPath.'/'.$className.'.php', $content);
                 }
 
                 $moduleGenerated += $subdirCount;
@@ -268,6 +268,7 @@ final class FixtureGenerator
     private function generateProviderClass(string $className, ?string $namespace = null): string
     {
         $ns = $namespace ?? $this->namespace;
+
         return <<<PHP
             <?php
 
@@ -306,16 +307,16 @@ final class FixtureGenerator
         $subAttributes = [
             "#[\\Pollora\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail', 'excerpt', 'comments'])]",
             "#[\\Pollora\\Attributes\\PostType\\MenuIcon(value: 'dashicons-admin-post')]",
-            "#[\\Pollora\\Attributes\\PostType\\HasArchive(value: true)]",
-            "#[\\Pollora\\Attributes\\PostType\\ShowInRest(value: true)]",
-            "#[\\Pollora\\Attributes\\PostType\\ShowUI(value: true)]",
-            "#[\\Pollora\\Attributes\\PostType\\Hierarchical(value: false)]",
-            "#[\\Pollora\\Attributes\\PostType\\PublicPostType(value: true)]",
-            "#[\\Pollora\\Attributes\\PostType\\MenuPosition(value: 25)]",
-            "#[\\Pollora\\Attributes\\PostType\\ExcludeFromSearch(value: false)]",
-            "#[\\Pollora\\Attributes\\PostType\\PubliclyQueryable(value: true)]",
-            "#[\\Pollora\\Attributes\\PostType\\CanExport(value: true)]",
-            "#[\\Pollora\\Attributes\\PostType\\DeleteWithUser(value: false)]",
+            '#[\\Pollora\\Attributes\\PostType\\HasArchive(value: true)]',
+            '#[\\Pollora\\Attributes\\PostType\\ShowInRest(value: true)]',
+            '#[\\Pollora\\Attributes\\PostType\\ShowUI(value: true)]',
+            '#[\\Pollora\\Attributes\\PostType\\Hierarchical(value: false)]',
+            '#[\\Pollora\\Attributes\\PostType\\PublicPostType(value: true)]',
+            '#[\\Pollora\\Attributes\\PostType\\MenuPosition(value: 25)]',
+            '#[\\Pollora\\Attributes\\PostType\\ExcludeFromSearch(value: false)]',
+            '#[\\Pollora\\Attributes\\PostType\\PubliclyQueryable(value: true)]',
+            '#[\\Pollora\\Attributes\\PostType\\CanExport(value: true)]',
+            '#[\\Pollora\\Attributes\\PostType\\DeleteWithUser(value: false)]',
         ];
 
         // Pick 3-8 sub-attributes based on index
@@ -371,7 +372,7 @@ final class FixtureGenerator
                 'PATCH' => 'patch',
             };
             // Avoid duplicate method names
-            $methodName = $methodName . ($m > 4 ? $m : '');
+            $methodName = $methodName.($m > 4 ? $m : '');
 
             $methods .= <<<PHP
 
@@ -503,6 +504,7 @@ final class FixtureGenerator
     private function generateRestWithHooksAndSchedule(string $className, int $index, ?string $ns = null): string
     {
         $ns ??= $this->namespace;
+
         return <<<PHP
             <?php
 
@@ -559,6 +561,7 @@ final class FixtureGenerator
     private function generateHeavyMixed(string $className, int $index, string $slug, ?string $ns = null): string
     {
         $ns ??= $this->namespace;
+
         return <<<PHP
             <?php
 
@@ -628,6 +631,7 @@ final class FixtureGenerator
     private function generatePlainClass(string $className, ?string $namespace = null): string
     {
         $ns = $namespace ?? $this->namespace;
+
         return <<<PHP
             <?php
 
@@ -648,14 +652,14 @@ final class FixtureGenerator
 
     private function ensureDirectory(string $path): void
     {
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             mkdir($path, 0755, true);
         }
     }
 
     private function removeDirectory(string $path): void
     {
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             return;
         }
 
