@@ -418,44 +418,25 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         string $className
     ): void {
         try {
-            // Get shared reflection data once
             $reflectionCache = $this->context->getReflectionCache();
-
-            // Only get reflection if any discovery might need it
-            $reflection = null;
-            $classAttributes = null;
-            $methodsWithAttributes = null;
 
             foreach ($this->discoveries as $discoveryId => $discovery) {
                 try {
-                    // Skip if already processed by this discovery type
                     if ($this->context->isProcessed($className, $discoveryId)) {
                         continue;
                     }
 
-                    // Lazy load reflection data only when needed
-                    if (! $reflection instanceof \ReflectionClass && $this->discoveryNeedsReflection($discovery, $structure)) {
-                        $reflection = $reflectionCache->getClassReflection($className);
-                        $classAttributes = $reflectionCache->getClassAttributes($className);
-                        $methodsWithAttributes = $reflectionCache->getMethodsWithAttributes($className);
-
-                        // Store in shared context for other discoveries
-                        $this->context->setSharedData($className, 'reflection', $reflection);
-                        $this->context->setSharedData($className, 'class_attributes', $classAttributes);
-                        $this->context->setSharedData($className, 'methods_with_attributes', $methodsWithAttributes);
-                    }
-
-                    // Let discovery process the structure with reflection cache
+                    // Each discovery handles its own reflection needs via ReflectionCache.
+                    // The cache ensures ReflectionClass is only created once per class,
+                    // regardless of how many discoveries request it.
                     $discovery->discover($location, $structure, $reflectionCache);
 
-                    // Mark as processed
                     $this->context->markProcessed($className, $discoveryId);
                     $this->context->incrementStat('discoveries_executed');
 
                 } catch (\Throwable $e) {
                     $this->context->recordError();
                     $this->logDiscoveryError(sprintf('Discovery %s for class %s', $discoveryId, $className), $e);
-                    // Continue with other discoveries
                 }
             }
 
@@ -463,26 +444,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $this->context->recordError();
             $this->logDiscoveryError('Failed to process class '.$className, $throwable);
         }
-    }
-
-    /**
-     * Check if a discovery needs reflection data.
-     *
-     * @param  DiscoveryInterface  $discovery  The discovery instance
-     * @param  DiscoveredClass  $structure  The discovered structure
-     * @return bool True if reflection is needed
-     */
-    private function discoveryNeedsReflection(DiscoveryInterface $discovery, DiscoveredClass $structure): bool
-    {
-        // ServiceProviderDiscovery has specific logic for checking class hierarchy
-        // Let it handle reflection internally to avoid dependency loading issues
-        if ($discovery instanceof ServiceProviderDiscovery) {
-            return false;
-        }
-
-        // For other discoveries, only load reflection if we need to check attributes
-        // and the class seems safe to load (not dependent on external plugins)
-        return $structure->attributes === [];
     }
 
     /**
