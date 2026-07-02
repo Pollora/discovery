@@ -23,17 +23,9 @@ namespace Tests\Benchmark\Fixtures;
  * - Schedule: 1-4 scheduled methods per class
  * - Mixed: combines patterns from multiple types
  */
-final class FixtureGenerator
+final readonly class FixtureGenerator
 {
-    private string $basePath;
-
-    private string $namespace;
-
-    public function __construct(string $basePath, string $namespace = 'Tests\\Benchmark\\Generated')
-    {
-        $this->basePath = $basePath;
-        $this->namespace = $namespace;
-    }
+    public function __construct(private string $basePath, private string $namespace = 'Tests\\Benchmark\\Generated') {}
 
     /**
      * Generate a set of fixture classes.
@@ -210,13 +202,13 @@ final class FixtureGenerator
     private function classNameForType(string $type, int $index): string
     {
         return match ($type) {
-            'hook' => "BenchHook{$index}",
-            'provider' => "BenchProvider{$index}",
-            'post_type' => "BenchPostType{$index}",
-            'rest' => "BenchRestController{$index}",
-            'schedule' => "BenchSchedule{$index}",
-            'mixed' => "BenchMixed{$index}",
-            'plain' => "BenchPlain{$index}",
+            'hook' => 'BenchHook'.$index,
+            'provider' => 'BenchProvider'.$index,
+            'post_type' => 'BenchPostType'.$index,
+            'rest' => 'BenchRestController'.$index,
+            'schedule' => 'BenchSchedule'.$index,
+            'mixed' => 'BenchMixed'.$index,
+            'plain' => 'BenchPlain'.$index,
         };
     }
 
@@ -234,7 +226,7 @@ final class FixtureGenerator
             $attrs = '';
 
             for ($a = 0; $a < $attrCount; $a++) {
-                $hookName = "bench_hook_{$index}_{$m}_{$a}";
+                $hookName = sprintf('bench_hook_%d_%d_%d', $index, $m, $a);
                 $attr = ($m + $a) % 3 === 0 ? 'Filter' : 'Action';
                 $priority = (($m * 3) + $a) * 5 + 10;
                 $attrs .= "    #[\\Pollora\\Attributes\\{$attr}(hook: '{$hookName}', priority: {$priority})]\n";
@@ -301,7 +293,7 @@ final class FixtureGenerator
     private function generatePostTypeClass(string $className, int $index, ?string $namespace = null): string
     {
         $ns = $namespace ?? $this->namespace;
-        $slug = "bench_cpt_{$index}";
+        $slug = 'bench_cpt_'.$index;
 
         // Pool of class-level PostType sub-attributes
         $subAttributes = [
@@ -372,7 +364,7 @@ final class FixtureGenerator
                 'PATCH' => 'patch',
             };
             // Avoid duplicate method names
-            $methodName = $methodName.($m > 4 ? $m : '');
+            $methodName .= $m > 4 ? $m : '';
 
             $methods .= <<<PHP
 
@@ -415,7 +407,7 @@ final class FixtureGenerator
 
         for ($m = 0; $m < $methodCount; $m++) {
             $recurrence = $recurrences[$m % count($recurrences)];
-            $hookName = "bench_cron_{$index}_{$m}";
+            $hookName = sprintf('bench_cron_%d_%d', $index, $m);
             $methods .= <<<PHP
 
                 #[\\Pollora\\Attributes\\Schedule(recurrence: '{$recurrence}', hook: '{$hookName}')]
@@ -450,7 +442,7 @@ final class FixtureGenerator
     private function generateMixedClass(string $className, int $index, ?string $namespace = null): string
     {
         $ns = $namespace ?? $this->namespace;
-        $slug = "bench_mixed_{$index}";
+        $slug = 'bench_mixed_'.$index;
         $variant = $index % 3;
 
         return match ($variant) {
@@ -467,7 +459,7 @@ final class FixtureGenerator
         $methods = '';
 
         for ($m = 0; $m < $hookCount; $m++) {
-            $hookName = "bench_mixed_hook_{$index}_{$m}";
+            $hookName = sprintf('bench_mixed_hook_%d_%d', $index, $m);
             $methods .= <<<PHP
 
                 #[\\Pollora\\Attributes\\Action(hook: '{$hookName}', priority: 10)]

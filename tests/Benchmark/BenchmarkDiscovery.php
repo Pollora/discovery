@@ -50,7 +50,7 @@ final class BenchmarkDiscovery implements DiscoveryInterface
 
         $className = $structure->namespace.'\\'.$structure->name;
 
-        if ($reflectionCache === null) {
+        if (! $reflectionCache instanceof ReflectionCacheInterface) {
             return;
         }
 

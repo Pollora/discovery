@@ -81,6 +81,7 @@ function generateAndRegister(int $count): array
         if (! str_starts_with($class, $namespace)) {
             return;
         }
+
         $relative = str_replace($namespace.'\\', '', $class);
         $file = $basePath.'/'.str_replace('\\', '/', $relative).'.php';
         if (file_exists($file)) {
@@ -238,7 +239,7 @@ describe('Discovery Performance', function (): void {
         // 5x classes should be less than 8x time (allowing for overhead)
         $ratio = $time500 / max(0.01, $time100);
         expect($ratio)->toBeLessThan(8.0,
-            "Scaling ratio: {$ratio}x for 5x classes (100: {$time100}ms, 500: {$time500}ms)"
+            sprintf('Scaling ratio: %sx for 5x classes (100: %sms, 500: %sms)', $ratio, $time100, $time500)
         );
     });
 
@@ -268,7 +269,7 @@ describe('Discovery Performance', function (): void {
             $perClassUs = $elapsedUs / 250;
 
             expect($perClassUs)->toBeLessThan(2000,
-                "Per-class cost: {$perClassUs} us (total: ".($elapsedUs / 1000).' ms for 250 classes)'
+                sprintf('Per-class cost: %s us (total: ', $perClassUs).($elapsedUs / 1000).' ms for 250 classes)'
             );
         } finally {
             spl_autoload_unregister($setup['autoloader']);
@@ -289,6 +290,7 @@ describe('Discovery Performance', function (): void {
                 if (! str_starts_with($class, $loc['namespace'])) {
                     return;
                 }
+
                 $relative = str_replace($loc['namespace'].'\\', '', $class);
                 $file = $loc['path'].'/'.str_replace('\\', '/', $relative).'.php';
                 if (file_exists($file)) {
@@ -324,6 +326,7 @@ describe('Discovery Performance', function (): void {
             foreach ($autoloaders as $al) {
                 spl_autoload_unregister($al);
             }
+
             $generator->cleanup();
         }
     });

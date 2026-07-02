@@ -21,11 +21,11 @@ use Tests\Benchmark\Fixtures\FixtureGenerator;
  */
 final class DiscoveryBenchmark
 {
-    private Container $container;
+    private readonly Container $container;
 
-    private DebugDetectorInterface $debugDetector;
+    private readonly DebugDetectorInterface $debugDetector;
 
-    private string $fixturesBasePath;
+    private readonly string $fixturesBasePath;
 
     /** @var array<string, array<string, mixed>> */
     private array $results = [];
@@ -244,7 +244,7 @@ final class DiscoveryBenchmark
 
     private function benchmarkMultiLocation(int $totalClasses, int $moduleCount, int $iterations): void
     {
-        $key = "{$totalClasses}c_{$moduleCount}m";
+        $key = sprintf('%dc_%dm', $totalClasses, $moduleCount);
         echo "\n".str_repeat('─', 70)."\n";
         echo "  {$totalClasses} classes across {$moduleCount} modules ({$iterations} iterations)\n";
         echo str_repeat('─', 70)."\n";
@@ -303,6 +303,7 @@ final class DiscoveryBenchmark
         foreach ($autoloaders as $al) {
             spl_autoload_unregister($al);
         }
+
         $generator->cleanup();
 
         $avgMs = $this->average($timings['scan']);
@@ -363,6 +364,7 @@ final class DiscoveryBenchmark
                     $closest = $sr;
                 }
             }
+
             if ($closest && $closestDiff < $classCount * 0.3) {
                 $overhead = (($r['avg_ms'] / max(0.01, $closest['full_discovery_avg_ms'])) - 1) * 100;
                 echo sprintf("    %d classes: single=%.1fms, multi(%d modules)=%.1fms => %+.0f%% overhead\n",
@@ -423,8 +425,9 @@ final class DiscoveryBenchmark
     {
         $parts = [];
         foreach ($distribution as $type => $count) {
-            $parts[] = "{$type}: {$count}";
+            $parts[] = sprintf('%s: %s', $type, $count);
         }
+
         echo '  Distribution: '.implode(', ', $parts)."\n";
     }
 

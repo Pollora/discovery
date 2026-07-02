@@ -20,6 +20,7 @@ spl_autoload_register(function (string $class): void {
     if (! str_starts_with($class, $prefix)) {
         return;
     }
+
     $relative = str_replace($prefix, '', $class);
     $file = __DIR__.'/'.str_replace('\\', '/', $relative).'.php';
     if (file_exists($file)) {
@@ -41,7 +42,7 @@ if (in_array('--quick', $args, true)) {
     $iterations = 2;
     $args = array_diff($args, ['--stress']);
 } elseif ($args !== []) {
-    $classCounts = array_map('intval', array_filter($args, 'is_numeric'));
+    $classCounts = array_map(intval(...), array_filter($args, is_numeric(...)));
     if ($classCounts === []) {
         $classCounts = [50, 100, 250, 500, 1000, 2000];
     }
