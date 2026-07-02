@@ -86,6 +86,7 @@ final class DiscoveryBenchmark
             'full_discovery' => [],
             'memory_peak' => [],
             'classes_processed' => [],
+            'total_items' => [],
         ];
 
         for ($i = 0; $i < $iterations; $i++) {
@@ -106,6 +107,7 @@ final class DiscoveryBenchmark
             $timings['full_discovery'][] = $fullResult['time_ms'];
             $timings['memory_peak'][] = $fullResult['memory_peak_mb'];
             $timings['classes_processed'][] = $fullResult['classes_processed'];
+            $timings['total_items'][] = $fullResult['total_items'];
 
             echo " done\n";
         }
@@ -127,6 +129,7 @@ final class DiscoveryBenchmark
             'full_discovery_max_ms' => max($timings['full_discovery']),
             'memory_peak_mb' => $this->average($timings['memory_peak']),
             'classes_processed' => (int) $this->average($timings['classes_processed']),
+            'total_items' => (int) $this->average($timings['total_items']),
             'per_class_us' => ($this->average($timings['full_discovery']) * 1000) / $count,
         ];
 
@@ -137,6 +140,7 @@ final class DiscoveryBenchmark
         echo sprintf("  Per class:        %7.1f us\n", $r['per_class_us']);
         echo sprintf("  Memory peak:      %7.2f MB\n", $r['memory_peak_mb']);
         echo sprintf("  Classes found:    %d\n", $r['classes_processed']);
+        echo sprintf("  Attributes found: %d (avg %.1f/class)\n", $r['total_items'], $r['total_items'] / max(1, $r['classes_processed']));
     }
 
     /**
@@ -203,10 +207,17 @@ final class DiscoveryBenchmark
 
         $stats = $engine->getPerformanceStats();
 
+        // Count total discovered items across all discoveries
+        $totalItems = 0;
+        foreach ($engine->getDiscoveries() as $discovery) {
+            $totalItems += count($discovery->getItems());
+        }
+
         return [
             'time_ms' => $elapsed,
             'memory_peak_mb' => ($memAfter - $memBefore) / (1024 * 1024),
             'classes_processed' => $stats['context']['total_classes'],
+            'total_items' => $totalItems,
             'stats' => $stats,
         ];
     }
@@ -272,16 +283,17 @@ final class DiscoveryBenchmark
         echo "╔══════════════════════════════════════════════════════════════════════╗\n";
         echo "║                          SUMMARY TABLE                              ║\n";
         echo "╠══════════════════════════════════════════════════════════════════════╣\n";
-        echo sprintf("║  %-8s │ %-12s │ %-14s │ %-10s │ %-8s ║\n", 'Classes', 'Scan (ms)', 'Discovery (ms)', 'Per cls', 'Mem MB');
+        echo sprintf("║  %-7s │ %-10s │ %-12s │ %-9s │ %-6s │ %-6s ║\n", 'Classes', 'Scan (ms)', 'Discov (ms)', 'Per cls', 'Attrs', 'Mem MB');
         echo "╠══════════════════════════════════════════════════════════════════════╣\n";
 
         foreach ($this->results as $r) {
             echo sprintf(
-                "║  %-8d │ %12.2f │ %14.2f │ %7.1f us │ %6.2f   ║\n",
+                "║  %-7d │ %10.2f │ %12.2f │ %6.1f us │ %6d │ %5.2f  ║\n",
                 $r['count'],
                 $r['spatie_scan_avg_ms'],
                 $r['full_discovery_avg_ms'],
                 $r['per_class_us'],
+                $r['total_items'],
                 $r['memory_peak_mb']
             );
         }

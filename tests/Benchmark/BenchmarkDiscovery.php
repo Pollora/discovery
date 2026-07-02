@@ -9,15 +9,21 @@ use Pollora\Discovery\Domain\Contracts\DiscoveryItemsInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
+use ReflectionMethod;
 use Spatie\StructureDiscoverer\Data\DiscoveredClass;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 /**
  * Benchmark Discovery Implementation
  *
- * A realistic discovery class that mimics the work done by real discoveries
- * (reflection, attribute scanning) without WordPress runtime dependencies.
- * This ensures we measure the actual discovery overhead, not just iterations.
+ * Mimics the real work done by framework discoveries:
+ * - Gets ReflectionClass via cache
+ * - Iterates ALL class-level attributes and calls newInstance() on each
+ * - Iterates ALL public methods, gets their attributes, calls newInstance()
+ * - Collects items per attribute (not per class)
+ *
+ * This ensures we measure the actual cost of attribute instantiation
+ * and reflection traversal, not just class counting.
  */
 final class BenchmarkDiscovery implements DiscoveryInterface
 {
@@ -44,32 +50,51 @@ final class BenchmarkDiscovery implements DiscoveryInterface
 
         $className = $structure->namespace.'\\'.$structure->name;
 
-        // Simulate realistic discovery work: reflection + attribute scanning
-        if ($reflectionCache !== null) {
-            try {
-                $reflection = $reflectionCache->getClassReflection($className);
-                $classAttributes = $reflectionCache->getClassAttributes($className);
-                $methods = $reflectionCache->getMethodsWithAttributes($className);
+        if ($reflectionCache === null) {
+            return;
+        }
 
-                // Collect items like real discoveries do
-                if ($classAttributes !== []) {
+        try {
+            $reflection = $reflectionCache->getClassReflection($className);
+
+            // Process ALL class-level attributes (like PostTypeDiscovery does)
+            $classAttributes = $reflection->getAttributes();
+            foreach ($classAttributes as $attribute) {
+                try {
+                    $instance = $attribute->newInstance();
                     $this->items->add($location, [
                         'type' => 'class_attribute',
                         'class' => $className,
-                        'attributes_count' => count($classAttributes),
+                        'attribute' => $attribute->getName(),
+                        'instance' => $instance,
                     ]);
+                } catch (\Throwable) {
+                    // Skip attributes that can't be instantiated (missing classes)
                 }
-
-                foreach ($methods as $method) {
-                    $this->items->add($location, [
-                        'type' => 'method_attribute',
-                        'class' => $className,
-                        'method' => $method->getName(),
-                    ]);
-                }
-            } catch (\Throwable) {
-                // Skip unloadable classes, like real discoveries
             }
+
+            // Process ALL public methods and their attributes (like HookDiscovery does)
+            $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC);
+            foreach ($methods as $method) {
+                $methodAttributes = $method->getAttributes();
+                foreach ($methodAttributes as $attribute) {
+                    try {
+                        $instance = $attribute->newInstance();
+                        $this->items->add($location, [
+                            'type' => 'method_attribute',
+                            'class' => $className,
+                            'method' => $method->getName(),
+                            'attribute' => $attribute->getName(),
+                            'instance' => $instance,
+                            'param_count' => $method->getNumberOfParameters(),
+                        ]);
+                    } catch (\Throwable) {
+                        // Skip attributes that can't be instantiated
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            // Skip unloadable classes, like real discoveries
         }
     }
 

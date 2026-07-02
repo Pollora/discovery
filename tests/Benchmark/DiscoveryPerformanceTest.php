@@ -217,7 +217,7 @@ describe('Discovery Performance', function (): void {
         );
     });
 
-    it('processes each class in under 1000 microseconds on average', function (): void {
+    it('processes each class in under 2000 microseconds on average', function (): void {
         $setup = generateAndRegister(250);
 
         try {
@@ -242,7 +242,7 @@ describe('Discovery Performance', function (): void {
 
             $perClassUs = $elapsedUs / 250;
 
-            expect($perClassUs)->toBeLessThan(1000,
+            expect($perClassUs)->toBeLessThan(2000,
                 "Per-class cost: {$perClassUs} us (total: ".($elapsedUs/1000)." ms for 250 classes)"
             );
         } finally {
