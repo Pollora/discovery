@@ -64,6 +64,98 @@ final class FixtureGenerator
     }
 
     /**
+     * Generate a multi-location structure simulating a real Pollora project.
+     *
+     * Creates N modules, each with a DDD-like directory structure:
+     *   ModuleName/
+     *     app/
+     *       PostTypes/
+     *       Hooks/
+     *       Http/Controllers/
+     *       Providers/
+     *       Jobs/
+     *       Models/
+     *
+     * Each module is a separate discovery location (like nwidart modules).
+     *
+     * @param int $totalClasses Total number of classes across all modules
+     * @param int $moduleCount Number of modules to create
+     * @return array{locations: array<array{path: string, namespace: string}>, total_classes: int, modules: int, dirs_created: int}
+     */
+    public function generateMultiLocation(int $totalClasses, int $moduleCount): array
+    {
+        $this->ensureDirectory($this->basePath);
+
+        $classesPerModule = (int) ceil($totalClasses / $moduleCount);
+        $locations = [];
+        $totalGenerated = 0;
+        $dirsCreated = 0;
+        $remaining = $totalClasses;
+
+        for ($mod = 0; $mod < $moduleCount; $mod++) {
+            $moduleName = "Module" . chr(65 + ($mod % 26)) . ($mod >= 26 ? $mod : '');
+            $modulePath = $this->basePath . '/' . $moduleName . '/app';
+            $moduleNamespace = $this->namespace . '\\' . $moduleName . '\\App';
+            $classCount = min($classesPerModule, $remaining);
+
+            if ($classCount <= 0) {
+                break;
+            }
+
+            // DDD subdirectories
+            $subdirs = [
+                'PostTypes' => 'post_type',
+                'Hooks' => 'hook',
+                'Http/Controllers' => 'rest',
+                'Providers' => 'provider',
+                'Jobs' => 'schedule',
+                'Models' => 'plain',
+                'Services' => 'mixed',
+            ];
+
+            $perSubdir = (int) ceil($classCount / count($subdirs));
+            $moduleGenerated = 0;
+
+            foreach ($subdirs as $subdir => $type) {
+                $subdirPath = $modulePath . '/' . $subdir;
+                $subdirNamespace = $moduleNamespace . '\\' . str_replace('/', '\\', $subdir);
+
+                $subdirCount = min($perSubdir, $classCount - $moduleGenerated);
+                if ($subdirCount <= 0) {
+                    break;
+                }
+
+                $this->ensureDirectory($subdirPath);
+                $dirsCreated++;
+
+                for ($i = 0; $i < $subdirCount; $i++) {
+                    $globalIndex = $totalGenerated + $moduleGenerated + $i;
+                    $className = $this->classNameForType($type, $globalIndex);
+                    $content = $this->generateClassContent($type, $className, $globalIndex, $subdirNamespace);
+                    file_put_contents($subdirPath . '/' . $className . '.php', $content);
+                }
+
+                $moduleGenerated += $subdirCount;
+            }
+
+            $locations[] = [
+                'path' => $modulePath,
+                'namespace' => $moduleNamespace,
+            ];
+
+            $totalGenerated += $moduleGenerated;
+            $remaining -= $moduleGenerated;
+        }
+
+        return [
+            'locations' => $locations,
+            'total_classes' => $totalGenerated,
+            'modules' => count($locations),
+            'dirs_created' => $dirsCreated,
+        ];
+    }
+
+    /**
      * Clean up generated fixtures.
      */
     public function cleanup(): void
@@ -97,17 +189,22 @@ final class FixtureGenerator
     private function generateClass(string $type, int $index): void
     {
         $className = $this->classNameForType($type, $index);
-        $content = match ($type) {
-            'hook' => $this->generateHookClass($className, $index),
-            'provider' => $this->generateProviderClass($className),
-            'post_type' => $this->generatePostTypeClass($className, $index),
-            'rest' => $this->generateRestClass($className, $index),
-            'schedule' => $this->generateScheduleClass($className, $index),
-            'mixed' => $this->generateMixedClass($className, $index),
-            'plain' => $this->generatePlainClass($className),
-        };
+        $content = $this->generateClassContent($type, $className, $index, $this->namespace);
 
         file_put_contents($this->basePath.'/'.$className.'.php', $content);
+    }
+
+    private function generateClassContent(string $type, string $className, int $index, string $namespace): string
+    {
+        return match ($type) {
+            'hook' => $this->generateHookClass($className, $index, $namespace),
+            'provider' => $this->generateProviderClass($className, $namespace),
+            'post_type' => $this->generatePostTypeClass($className, $index, $namespace),
+            'rest' => $this->generateRestClass($className, $index, $namespace),
+            'schedule' => $this->generateScheduleClass($className, $index, $namespace),
+            'mixed' => $this->generateMixedClass($className, $index, $namespace),
+            'plain' => $this->generatePlainClass($className, $namespace),
+        };
     }
 
     private function classNameForType(string $type, int $index): string
@@ -126,8 +223,9 @@ final class FixtureGenerator
     /**
      * Hook class: 2-6 methods, each with 1-3 repeatable Action/Filter attributes.
      */
-    private function generateHookClass(string $className, int $index): string
+    private function generateHookClass(string $className, int $index, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         $methodCount = ($index % 5) + 2; // 2 to 6 methods
         $methods = '';
 
@@ -157,7 +255,7 @@ final class FixtureGenerator
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             class {$className}
             {
@@ -167,14 +265,15 @@ final class FixtureGenerator
             PHP;
     }
 
-    private function generateProviderClass(string $className): string
+    private function generateProviderClass(string $className, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         return <<<PHP
             <?php
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             use Illuminate\Support\ServiceProvider;
 
@@ -198,8 +297,9 @@ final class FixtureGenerator
      * PostType class: stacked class-level attributes (3-8 per class).
      * Mirrors real usage: #[PostType] + #[Supports] + #[MenuIcon] + #[HasArchive] + ...
      */
-    private function generatePostTypeClass(string $className, int $index): string
+    private function generatePostTypeClass(string $className, int $index, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         $slug = "bench_cpt_{$index}";
 
         // Pool of class-level PostType sub-attributes
@@ -228,7 +328,7 @@ final class FixtureGenerator
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             use Pollora\\Attributes\\PostType;
 
@@ -253,8 +353,9 @@ final class FixtureGenerator
     /**
      * REST controller class: class-level WpRestRoute + 2-5 methods with Method attribute.
      */
-    private function generateRestClass(string $className, int $index): string
+    private function generateRestClass(string $className, int $index, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         $methodCount = ($index % 4) + 2; // 2 to 5 methods
         $methods = '';
 
@@ -288,7 +389,7 @@ final class FixtureGenerator
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             use Pollora\\Attributes\\WpRestRoute;
 
@@ -304,8 +405,9 @@ final class FixtureGenerator
     /**
      * Schedule class: 1-4 methods each with a Schedule attribute.
      */
-    private function generateScheduleClass(string $className, int $index): string
+    private function generateScheduleClass(string $className, int $index, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         $methodCount = ($index % 4) + 1; // 1 to 4 methods
         $recurrences = ['hourly', 'daily', 'twicedaily', 'weekly'];
         $methods = '';
@@ -329,7 +431,7 @@ final class FixtureGenerator
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             class {$className}
             {
@@ -344,23 +446,22 @@ final class FixtureGenerator
      * This is the most realistic and complex scenario — a post type class
      * that also registers hooks for admin columns, meta boxes, etc.
      */
-    private function generateMixedClass(string $className, int $index): string
+    private function generateMixedClass(string $className, int $index, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         $slug = "bench_mixed_{$index}";
         $variant = $index % 3;
 
         return match ($variant) {
-            // PostType + hooks
-            0 => $this->generatePostTypeWithHooks($className, $index, $slug),
-            // REST + hooks + schedule
-            1 => $this->generateRestWithHooksAndSchedule($className, $index),
-            // Heavy: PostType + hooks + schedule
-            2 => $this->generateHeavyMixed($className, $index, $slug),
+            0 => $this->generatePostTypeWithHooks($className, $index, $slug, $ns),
+            1 => $this->generateRestWithHooksAndSchedule($className, $index, $ns),
+            2 => $this->generateHeavyMixed($className, $index, $slug, $ns),
         };
     }
 
-    private function generatePostTypeWithHooks(string $className, int $index, string $slug): string
+    private function generatePostTypeWithHooks(string $className, int $index, string $slug, ?string $ns = null): string
     {
+        $ns ??= $this->namespace;
         $hookCount = ($index % 3) + 2; // 2-4 hook methods
         $methods = '';
 
@@ -382,7 +483,7 @@ final class FixtureGenerator
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             use Pollora\\Attributes\\PostType;
 
@@ -399,14 +500,15 @@ final class FixtureGenerator
             PHP;
     }
 
-    private function generateRestWithHooksAndSchedule(string $className, int $index): string
+    private function generateRestWithHooksAndSchedule(string $className, int $index, ?string $ns = null): string
     {
+        $ns ??= $this->namespace;
         return <<<PHP
             <?php
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             use Pollora\\Attributes\\WpRestRoute;
 
@@ -454,14 +556,15 @@ final class FixtureGenerator
             PHP;
     }
 
-    private function generateHeavyMixed(string $className, int $index, string $slug): string
+    private function generateHeavyMixed(string $className, int $index, string $slug, ?string $ns = null): string
     {
+        $ns ??= $this->namespace;
         return <<<PHP
             <?php
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             use Pollora\\Attributes\\PostType;
 
@@ -522,14 +625,15 @@ final class FixtureGenerator
             PHP;
     }
 
-    private function generatePlainClass(string $className): string
+    private function generatePlainClass(string $className, ?string $namespace = null): string
     {
+        $ns = $namespace ?? $this->namespace;
         return <<<PHP
             <?php
 
             declare(strict_types=1);
 
-            namespace {$this->namespace};
+            namespace {$ns};
 
             class {$className}
             {

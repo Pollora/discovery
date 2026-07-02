@@ -250,4 +250,56 @@ describe('Discovery Performance', function (): void {
             $setup['generator']->cleanup();
         }
     });
+
+    it('handles multi-location with DDD subdirectories without excessive overhead', function (): void {
+        $basePath = __DIR__.'/Generated';
+        $namespace = 'Tests\\Benchmark\\Generated';
+        $generator = new FixtureGenerator($basePath, $namespace);
+
+        $multiInfo = $generator->generateMultiLocation(200, 5);
+
+        $autoloaders = [];
+        foreach ($multiInfo['locations'] as $loc) {
+            $al = function (string $class) use ($loc): void {
+                if (!str_starts_with($class, $loc['namespace'])) {
+                    return;
+                }
+                $relative = str_replace($loc['namespace'].'\\', '', $class);
+                $file = $loc['path'].'/'.str_replace('\\', '/', $relative).'.php';
+                if (file_exists($file)) {
+                    require_once $file;
+                }
+            };
+            spl_autoload_register($al);
+            $autoloaders[] = $al;
+        }
+
+        try {
+            $container = createBenchContainer();
+            $engine = new DiscoveryEngine($container, createBenchDebugDetector());
+
+            foreach ($multiInfo['locations'] as $loc) {
+                $engine->addLocation(new DiscoveryLocation($loc['namespace'], $loc['path']));
+            }
+
+            $engine->addDiscovery('hooks', new BenchmarkDiscovery('hooks'));
+            $engine->addDiscovery('providers', new BenchmarkDiscovery('providers'));
+            $engine->addDiscovery('post_types', new BenchmarkDiscovery('post_types'));
+
+            $start = hrtime(true);
+            $engine->discover();
+            $elapsedMs = (hrtime(true) - $start) / 1_000_000;
+
+            $stats = $engine->getPerformanceStats();
+
+            expect($stats['context']['total_classes'])->toBeGreaterThanOrEqual(200);
+            // 5 modules with subdirs should not be dramatically slower than flat
+            expect($elapsedMs)->toBeLessThan(5000);
+        } finally {
+            foreach ($autoloaders as $al) {
+                spl_autoload_unregister($al);
+            }
+            $generator->cleanup();
+        }
+    });
 });

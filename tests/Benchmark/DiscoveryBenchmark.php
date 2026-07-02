@@ -31,6 +31,9 @@ final class DiscoveryBenchmark
     /** @var array<string, array<string, mixed>> */
     private array $results = [];
 
+    /** @var array<string, array<string, mixed>> */
+    private array $resultsMulti = [];
+
     public function __construct()
     {
         $this->container = new Container;
@@ -56,11 +59,28 @@ final class DiscoveryBenchmark
     {
         $this->printHeader();
 
+        echo "\n  ── SINGLE LOCATION (flat directory) ──\n";
         foreach ($classCounts as $count) {
             $this->benchmarkClassCount($count, $iterations);
         }
 
         $this->printSummary();
+
+        // Multi-location benchmark
+        echo "\n  ── MULTI-LOCATION (modules with DDD subdirs) ──\n";
+        $this->resultsMulti = [];
+        $multiScenarios = [
+            ['classes' => 100, 'modules' => 5],
+            ['classes' => 250, 'modules' => 8],
+            ['classes' => 500, 'modules' => 10],
+            ['classes' => 1000, 'modules' => 15],
+        ];
+
+        foreach ($multiScenarios as $scenario) {
+            $this->benchmarkMultiLocation($scenario['classes'], $scenario['modules'], $iterations);
+        }
+
+        $this->printMultiLocationSummary();
     }
 
     private function benchmarkClassCount(int $count, int $iterations): void
@@ -220,6 +240,137 @@ final class DiscoveryBenchmark
             'total_items' => $totalItems,
             'stats' => $stats,
         ];
+    }
+
+    private function benchmarkMultiLocation(int $totalClasses, int $moduleCount, int $iterations): void
+    {
+        $key = "{$totalClasses}c_{$moduleCount}m";
+        echo "\n".str_repeat('─', 70)."\n";
+        echo "  {$totalClasses} classes across {$moduleCount} modules ({$iterations} iterations)\n";
+        echo str_repeat('─', 70)."\n";
+
+        $generator = new FixtureGenerator(
+            $this->fixturesBasePath,
+            'Tests\\Benchmark\\Generated'
+        );
+
+        $multiInfo = $generator->generateMultiLocation($totalClasses, $moduleCount);
+        echo sprintf("  Generated: %d classes, %d modules, %d subdirs\n",
+            $multiInfo['total_classes'], $multiInfo['modules'], $multiInfo['dirs_created']);
+
+        // Register autoloaders for all locations
+        $autoloaders = [];
+        foreach ($multiInfo['locations'] as $loc) {
+            $autoloaders[] = $this->registerAutoloader($loc['path'], $loc['namespace']);
+        }
+
+        $timings = ['scan' => [], 'discovery' => [], 'memory' => [], 'items' => []];
+
+        for ($i = 0; $i < $iterations; $i++) {
+            echo "  Iteration ".($i + 1)."...";
+            $this->clearStaticCaches();
+
+            // Full discovery with multiple locations
+            $engine = new DiscoveryEngine($this->container, $this->debugDetector);
+
+            foreach ($multiInfo['locations'] as $loc) {
+                $engine->addLocation(new DiscoveryLocation($loc['namespace'], $loc['path']));
+            }
+
+            $engine->addDiscovery('hooks', new BenchmarkDiscovery('hooks'));
+            $engine->addDiscovery('providers', new BenchmarkDiscovery('providers'));
+            $engine->addDiscovery('post_types', new BenchmarkDiscovery('post_types'));
+            $engine->addDiscovery('rest_routes', new BenchmarkDiscovery('rest_routes'));
+            $engine->addDiscovery('schedules', new BenchmarkDiscovery('schedules'));
+
+            $memBefore = memory_get_usage(true);
+            $start = hrtime(true);
+            $engine->discover();
+            $elapsed = (hrtime(true) - $start) / 1_000_000;
+
+            $totalItems = 0;
+            foreach ($engine->getDiscoveries() as $d) {
+                $totalItems += count($d->getItems());
+            }
+
+            $timings['scan'][] = $elapsed; // Combined scan + processing
+            $timings['memory'][] = (memory_get_peak_usage(true) - $memBefore) / (1024 * 1024);
+            $timings['items'][] = $totalItems;
+
+            echo " done\n";
+        }
+
+        foreach ($autoloaders as $al) {
+            spl_autoload_unregister($al);
+        }
+        $generator->cleanup();
+
+        $avgMs = $this->average($timings['scan']);
+        $this->resultsMulti[$key] = [
+            'classes' => $multiInfo['total_classes'],
+            'modules' => $multiInfo['modules'],
+            'dirs' => $multiInfo['dirs_created'],
+            'avg_ms' => $avgMs,
+            'min_ms' => min($timings['scan']),
+            'max_ms' => max($timings['scan']),
+            'per_class_us' => ($avgMs * 1000) / max(1, $multiInfo['total_classes']),
+            'items' => (int) $this->average($timings['items']),
+            'memory_mb' => $this->average($timings['memory']),
+        ];
+
+        $r = $this->resultsMulti[$key];
+        echo sprintf("\n  Discovery:     avg %7.2f ms  (min %.2f / max %.2f)\n", $r['avg_ms'], $r['min_ms'], $r['max_ms']);
+        echo sprintf("  Per class:     %7.1f us\n", $r['per_class_us']);
+        echo sprintf("  Attrs found:   %d\n", $r['items']);
+        echo sprintf("  Memory peak:   %7.2f MB\n", $r['memory_mb']);
+    }
+
+    private function printMultiLocationSummary(): void
+    {
+        if ($this->resultsMulti === []) {
+            return;
+        }
+
+        echo "\n\n";
+        echo "╔════════════════════════════════════════════════════════════════════════════╗\n";
+        echo "║                   MULTI-LOCATION SUMMARY                                  ║\n";
+        echo "╠════════════════════════════════════════════════════════════════════════════╣\n";
+        echo sprintf("║  %-7s │ %-7s │ %-5s │ %-11s │ %-9s │ %-6s │ %-6s ║\n",
+            'Classes', 'Modules', 'Dirs', 'Discov (ms)', 'Per cls', 'Attrs', 'Mem MB');
+        echo "╠════════════════════════════════════════════════════════════════════════════╣\n";
+
+        foreach ($this->resultsMulti as $r) {
+            echo sprintf(
+                "║  %-7d │ %-7d │ %-5d │ %11.2f │ %6.1f us │ %6d │ %5.2f  ║\n",
+                $r['classes'], $r['modules'], $r['dirs'],
+                $r['avg_ms'], $r['per_class_us'], $r['items'], $r['memory_mb']
+            );
+        }
+
+        echo "╚════════════════════════════════════════════════════════════════════════════╝\n";
+
+        // Compare single vs multi for same class count
+        echo "\n  Single-location vs Multi-location comparison:\n";
+        foreach ($this->resultsMulti as $r) {
+            $classCount = $r['classes'];
+            // Find closest single-location result
+            $closest = null;
+            $closestDiff = PHP_INT_MAX;
+            foreach ($this->results as $sr) {
+                $diff = abs($sr['count'] - $classCount);
+                if ($diff < $closestDiff) {
+                    $closestDiff = $diff;
+                    $closest = $sr;
+                }
+            }
+            if ($closest && $closestDiff < $classCount * 0.3) {
+                $overhead = (($r['avg_ms'] / max(0.01, $closest['full_discovery_avg_ms'])) - 1) * 100;
+                echo sprintf("    %d classes: single=%.1fms, multi(%d modules)=%.1fms => %+.0f%% overhead\n",
+                    $classCount, $closest['full_discovery_avg_ms'], $r['modules'], $r['avg_ms'], $overhead);
+            }
+        }
+
+        echo "\n";
     }
 
     private function registerAutoloader(string $path, string $namespace): \Closure
