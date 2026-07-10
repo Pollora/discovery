@@ -47,6 +47,13 @@ final class ReflectionCache implements ReflectionCacheInterface
     private array $methodsWithAttributes = [];
 
     /**
+     * Cache for public methods per class
+     *
+     * @var array<string, array<ReflectionMethod>>
+     */
+    private array $publicMethods = [];
+
+    /**
      * Cache for class instances from DI container
      *
      * @var array<string, object>
@@ -97,6 +104,19 @@ final class ReflectionCache implements ReflectionCacheInterface
         }
 
         return $this->classReflections[$className];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPublicMethods(string $className): array
+    {
+        if (! isset($this->publicMethods[$className])) {
+            $this->publicMethods[$className] = $this->getClassReflection($className)
+                ->getMethods(ReflectionMethod::IS_PUBLIC);
+        }
+
+        return $this->publicMethods[$className];
     }
 
     /**
@@ -194,10 +214,9 @@ final class ReflectionCache implements ReflectionCacheInterface
     private function buildMethodAttributeCache(string $className, ?string $attributeClass = null): void
     {
         $cacheKey = $attributeClass ?? '*';
-        $reflection = $this->getClassReflection($className);
         $methodsWithAttributes = [];
 
-        foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+        foreach ($this->getPublicMethods($className) as $method) {
             $hasMatchingAttribute = false;
 
             if ($attributeClass === null) {
