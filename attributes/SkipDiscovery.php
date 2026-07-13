@@ -9,11 +9,30 @@ use Attribute;
 /**
  * Marks a class to be ignored by the discovery engine.
  *
- * When placed on a class, no discovery service will process it —
- * no reflection will be loaded and no attributes will be scanned.
+ * Without parameters, the class is completely invisible to all discoveries:
  *
- * Useful for base classes, abstract helpers, or any class that should
- * not be auto-registered by the discovery system.
+ *     #[SkipDiscovery]
+ *     class InternalHelper { ... }
+ *
+ * With `except`, the class is skipped by all discoveries except the listed ones:
+ *
+ *     #[SkipDiscovery(except: [ServiceProviderDiscovery::class])]
+ *     class MyProvider extends ServiceProvider { ... }
+ *
+ * @param  array<class-string>  $except  Discovery classes that should still process this class
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final class SkipDiscovery {}
+final class SkipDiscovery
+{
+    /** @var array<class-string> */
+    public readonly array $except;
+
+    /**
+     * @param  array<class-string>  $except  Discovery classes that should still process this class
+     */
+    public function __construct(
+        array $except = [],
+    ) {
+        $this->except = $except;
+    }
+}

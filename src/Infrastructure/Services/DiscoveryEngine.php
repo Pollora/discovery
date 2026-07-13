@@ -378,12 +378,19 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         foreach ($structures as $entry) {
             $structure = $entry['structure'];
             if ($structure instanceof DiscoveredClass
-                && ! $structure->isAbstract
-                && ! $this->hasSkipDiscoveryAttribute($structure)) {
+                && ! $structure->isAbstract) {
+                $skipAttr = $this->getSkipDiscoveryAttribute($structure);
+
+                // Skip entirely if #[SkipDiscovery] with no exceptions
+                if ($skipAttr !== null && $skipAttr->except === []) {
+                    continue;
+                }
+
                 $className = $structure->namespace.'\\'.$structure->name;
                 $structuresByClass[$className] = [
                     'structure' => $structure,
                     'location' => $entry['location'],
+                    'skip_except' => $skipAttr?->except,
                 ];
             }
         }
@@ -400,7 +407,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $this->processClassForAllDiscoveries(
                 $data['structure'],
                 $data['location'],
-                $className
+                $className,
+                $data['skip_except']
             );
         }
 
@@ -414,10 +422,14 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * @param  DiscoveryLocationInterface  $location  The discovery location
      * @param  string  $className  The fully qualified class name
      */
+    /**
+     * @param  array<class-string>|null  $skipExcept  If set, only these discovery classes may process the structure
+     */
     private function processClassForAllDiscoveries(
         DiscoveredClass $structure,
         DiscoveryLocationInterface $location,
-        string $className
+        string $className,
+        ?array $skipExcept = null
     ): void {
         try {
             $reflectionCache = $this->context->getReflectionCache();
@@ -428,9 +440,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                         continue;
                     }
 
-                    // Each discovery handles its own reflection needs via ReflectionCache.
-                    // The cache ensures ReflectionClass is only created once per class,
-                    // regardless of how many discoveries request it.
+                    // #[SkipDiscovery(except: [...])] — only allow listed discoveries
+                    if ($skipExcept !== null && ! in_array($discovery::class, $skipExcept, true)) {
+                        continue;
+                    }
+
                     $discovery->discover($location, $structure, $reflectionCache);
 
                     $this->context->markProcessed($className, $discoveryId);
@@ -449,19 +463,40 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     }
 
     /**
-     * Check if a structure has the #[SkipDiscovery] attribute.
+     * Get the #[SkipDiscovery] attribute instance if present on the structure.
      *
-     * Uses Spatie's token-parsed attribute data — no reflection needed.
+     * Uses Spatie's token-parsed data to detect the attribute without reflection.
+     * Only loads reflection to read parameters when the attribute is found.
      */
-    private function hasSkipDiscoveryAttribute(DiscoveredClass $structure): bool
+    private function getSkipDiscoveryAttribute(DiscoveredClass $structure): ?SkipDiscovery
     {
         foreach ($structure->attributes as $attribute) {
             if ($attribute->class === SkipDiscovery::class) {
-                return true;
+                return $this->instantiateSkipDiscovery($structure);
             }
         }
 
-        return false;
+        return null;
+    }
+
+    /**
+     * Instantiate the #[SkipDiscovery] attribute to read its parameters.
+     */
+    private function instantiateSkipDiscovery(DiscoveredClass $structure): SkipDiscovery
+    {
+        try {
+            $className = $structure->namespace.'\\'.$structure->name;
+            $reflection = new \ReflectionClass($className);
+            $attrs = $reflection->getAttributes(SkipDiscovery::class);
+
+            if ($attrs !== []) {
+                return $attrs[0]->newInstance();
+            }
+        } catch (\Throwable) {
+            // If reflection fails, treat as full skip
+        }
+
+        return new SkipDiscovery;
     }
 
     /**
