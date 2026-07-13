@@ -7,6 +7,7 @@ namespace Pollora\Discovery\Infrastructure\Services;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
+use Pollora\Attributes\SkipDiscovery;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
@@ -376,8 +377,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
         foreach ($structures as $entry) {
             $structure = $entry['structure'];
-            if ($structure instanceof DiscoveredClass &&
-                ! $structure->isAbstract) {
+            if ($structure instanceof DiscoveredClass
+                && ! $structure->isAbstract
+                && ! $this->hasSkipDiscoveryAttribute($structure)) {
                 $className = $structure->namespace.'\\'.$structure->name;
                 $structuresByClass[$className] = [
                     'structure' => $structure,
@@ -444,6 +446,22 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $this->context->recordError();
             $this->logDiscoveryError('Failed to process class '.$className, $throwable);
         }
+    }
+
+    /**
+     * Check if a structure has the #[SkipDiscovery] attribute.
+     *
+     * Uses Spatie's token-parsed attribute data — no reflection needed.
+     */
+    private function hasSkipDiscoveryAttribute(DiscoveredClass $structure): bool
+    {
+        foreach ($structure->attributes as $attribute) {
+            if ($attribute->class === SkipDiscovery::class) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
