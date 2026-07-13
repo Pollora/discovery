@@ -74,6 +74,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * @param  InstancePool|null  $instancePool  Optional instance pool
      * @param  LoggerInterface|null  $logger  Optional PSR-3 logger
      * @param  DiscoveryCacheManager|null  $cacheManager  Optional cache manager
+     * @param  array<class-string>  $skipClasses  Classes to exclude from discovery
+     * @param  array<string>  $skipPaths  Path patterns to exclude from discovery
      */
     public function __construct(
         private readonly Container $container,
@@ -81,7 +83,9 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         ?ReflectionCacheInterface $reflectionCache = null,
         ?InstancePool $instancePool = null,
         private readonly ?LoggerInterface $logger = null,
-        ?DiscoveryCacheManager $cacheManager = null
+        ?DiscoveryCacheManager $cacheManager = null,
+        private readonly array $skipClasses = [],
+        private readonly array $skipPaths = [],
     ) {
         $this->locations = new Collection;
         $this->discoveries = new Collection;
@@ -377,22 +381,28 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
         foreach ($structures as $entry) {
             $structure = $entry['structure'];
-            if ($structure instanceof DiscoveredClass
-                && ! $structure->isAbstract) {
-                $skipAttr = $this->getSkipDiscoveryAttribute($structure);
-
-                // Skip entirely if #[SkipDiscovery] with no exceptions
-                if ($skipAttr !== null && $skipAttr->except === []) {
-                    continue;
-                }
-
-                $className = $structure->namespace.'\\'.$structure->name;
-                $structuresByClass[$className] = [
-                    'structure' => $structure,
-                    'location' => $entry['location'],
-                    'skip_except' => $skipAttr?->except,
-                ];
+            if (! $structure instanceof DiscoveredClass || $structure->isAbstract) {
+                continue;
             }
+
+            $className = $structure->namespace.'\\'.$structure->name;
+
+            // Config-level exclusions (no reflection needed)
+            if ($this->isSkippedByConfig($className, $structure->file)) {
+                continue;
+            }
+
+            // Attribute-level exclusion
+            $skipAttr = $this->getSkipDiscoveryAttribute($structure);
+            if ($skipAttr !== null && $skipAttr->except === []) {
+                continue;
+            }
+
+            $structuresByClass[$className] = [
+                'structure' => $structure,
+                'location' => $entry['location'],
+                'skip_except' => $skipAttr?->except,
+            ];
         }
 
         // Initialize discoveries with fresh items only if they don't have items yet
@@ -460,6 +470,24 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $this->context->recordError();
             $this->logDiscoveryError('Failed to process class '.$className, $throwable);
         }
+    }
+
+    /**
+     * Check if a class or file is excluded by config-level skip rules.
+     */
+    private function isSkippedByConfig(string $className, string $filePath): bool
+    {
+        if (in_array($className, $this->skipClasses, true)) {
+            return true;
+        }
+
+        foreach ($this->skipPaths as $pattern) {
+            if (str_contains($filePath, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
