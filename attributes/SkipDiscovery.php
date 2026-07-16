@@ -22,17 +22,10 @@ use Attribute;
  * @param  array<class-string>  $except  Discovery classes that should still process this class
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-final class SkipDiscovery
+final readonly class SkipDiscovery
 {
-    /** @var array<class-string> */
-    public readonly array $except;
-
     /**
      * @param  array<class-string>  $except  Discovery classes that should still process this class
      */
-    public function __construct(
-        array $except = [],
-    ) {
-        $this->except = $except;
-    }
+    public function __construct(public array $except = []) {}
 }

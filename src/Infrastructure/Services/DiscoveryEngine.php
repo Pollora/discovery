@@ -66,6 +66,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     private readonly DiscoveryCacheManager $cacheManager;
 
     /**
+     * Registrar for auto-discovering Discovery classes
+     */
+    private readonly DiscoveryRegistrar $registrar;
+
+    /**
      * Create a new discovery engine
      *
      * @param  Container  $container  The service container for dependency injection
@@ -95,6 +100,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $this->instancePool = $instancePool ?? new InstancePool($container);
         $this->context = new DiscoveryContext($reflectionCache);
         $this->cacheManager = $cacheManager ?? new DiscoveryCacheManager($container, $debugDetector);
+        $this->registrar = new DiscoveryRegistrar($container, $this->logger);
     }
 
     /**
@@ -162,10 +168,12 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function discover(): static
     {
-        // Discover all structures but don't preload reflection - keep lazy loading
         $allStructures = $this->discoverAllStructures();
 
-        // Process structures with unified approach without eager reflection loading
+        // Auto-register Discovery classes found in scanned locations
+        $this->autoRegisterDiscoveries($allStructures);
+
+        // Process structures with all discoveries (manual + auto-registered)
         $this->processStructuresUnified($allStructures);
 
         return $this;
@@ -347,6 +355,21 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     }
 
     /**
+     * Auto-register Discovery classes found in scanned structures.
+     *
+     * Uses the DiscoveryRegistrar to find DiscoveryInterface implementations
+     * and register them with the engine before the main processing pipeline.
+     * Manual registrations via addDiscovery() take precedence.
+     *
+     * @param  array<array{structure: DiscoveredStructure, location: DiscoveryLocationInterface}>  $allStructures
+     */
+    private function autoRegisterDiscoveries(array $allStructures): void
+    {
+        $structures = array_column($allStructures, 'structure');
+        $this->registrar->registerFromStructures($structures, $this);
+    }
+
+    /**
      * Discover all structures from all locations using Spatie's discoverer.
      *
      * @return array<array{structure: DiscoveredStructure, location: DiscoveryLocationInterface}> All discovered structures with their locations
@@ -381,7 +404,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
         foreach ($structures as $entry) {
             $structure = $entry['structure'];
-            if (! $structure instanceof DiscoveredClass || $structure->isAbstract) {
+            if (! $structure instanceof DiscoveredClass) {
+                continue;
+            }
+
+            if ($structure->isAbstract) {
                 continue;
             }
 
@@ -394,7 +421,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
             // Attribute-level exclusion
             $skipAttr = $this->getSkipDiscoveryAttribute($structure);
-            if ($skipAttr !== null && $skipAttr->except === []) {
+            if ($skipAttr instanceof SkipDiscovery && $skipAttr->except === []) {
                 continue;
             }
 

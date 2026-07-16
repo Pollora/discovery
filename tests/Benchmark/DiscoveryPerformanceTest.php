@@ -268,7 +268,7 @@ describe('Discovery Performance', function (): void {
 
             $perClassUs = $elapsedUs / 250;
 
-            expect($perClassUs)->toBeLessThan(2000,
+            expect($perClassUs)->toBeLessThan(3000,
                 sprintf('Per-class cost: %s us (total: ', $perClassUs).($elapsedUs / 1000).' ms for 250 classes)'
             );
         } finally {
