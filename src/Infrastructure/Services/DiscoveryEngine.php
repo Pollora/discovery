@@ -168,12 +168,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function discover(): static
     {
+        // Auto-register Discovery classes from container bindings
+        $this->registrar->registerFromContainer($this);
+
         $allStructures = $this->discoverAllStructures();
 
-        // Auto-register Discovery classes found in scanned locations
-        $this->autoRegisterDiscoveries($allStructures);
-
-        // Process structures with all discoveries (manual + auto-registered)
         $this->processStructuresUnified($allStructures);
 
         return $this;
@@ -352,21 +351,6 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         } catch (\Throwable $throwable) {
             throw InvalidDiscoveryException::invalidClass($discovery, 'Cannot instantiate: '.$throwable->getMessage());
         }
-    }
-
-    /**
-     * Auto-register Discovery classes found in scanned structures.
-     *
-     * Uses the DiscoveryRegistrar to find DiscoveryInterface implementations
-     * and register them with the engine before the main processing pipeline.
-     * Manual registrations via addDiscovery() take precedence.
-     *
-     * @param  array<array{structure: DiscoveredStructure, location: DiscoveryLocationInterface}>  $allStructures
-     */
-    private function autoRegisterDiscoveries(array $allStructures): void
-    {
-        $structures = array_column($allStructures, 'structure');
-        $this->registrar->registerFromStructures($structures, $this);
     }
 
     /**
