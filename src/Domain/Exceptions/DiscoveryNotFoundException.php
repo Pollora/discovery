@@ -10,16 +10,16 @@ namespace Pollora\Discovery\Domain\Exceptions;
  * Thrown when a requested discovery class cannot be found
  * in the discovery registry or engine.
  */
-class DiscoveryNotFoundException extends DiscoveryException
+final class DiscoveryNotFoundException extends DiscoveryException
 {
     /**
      * Create exception for missing discovery
      *
      * @param  string  $identifier  The discovery identifier that was not found
      */
-    public static function withIdentifier(string $identifier): static
+    public static function withIdentifier(string $identifier): self
     {
-        return new static('Discovery not found with identifier: '.$identifier);
+        return new self('Discovery not found with identifier: '.$identifier);
     }
 
     /**
@@ -27,8 +27,8 @@ class DiscoveryNotFoundException extends DiscoveryException
      *
      * @param  string  $discoveryClass  The discovery class that was not found
      */
-    public static function withClass(string $discoveryClass): static
+    public static function withClass(string $discoveryClass): self
     {
-        return new static('Discovery class not found: '.$discoveryClass);
+        return new self('Discovery class not found: '.$discoveryClass);
     }
 }

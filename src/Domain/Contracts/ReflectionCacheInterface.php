@@ -46,6 +46,17 @@ interface ReflectionCacheInterface
     public function getClassAttributes(string $className, ?string $attributeClass = null): array;
 
     /**
+     * Get cached public methods for a class.
+     *
+     * Eliminates redundant getMethods(IS_PUBLIC) calls when multiple
+     * discoveries inspect the same class.
+     *
+     * @param  string  $className  The fully qualified class name
+     * @return array<ReflectionMethod> Array of public methods
+     */
+    public function getPublicMethods(string $className): array;
+
+    /**
      * Get cached class instance from the DI container.
      *
      * @param  string  $className  The fully qualified class name

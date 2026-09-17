@@ -103,13 +103,7 @@ final class DiscoveryItems implements DiscoveryItemsInterface
      */
     public function all(): array
     {
-        $allItems = [];
-
-        foreach ($this->items as $locationItems) {
-            $allItems = [...$allItems, ...$locationItems];
-        }
-
-        return $allItems;
+        return $this->items === [] ? [] : array_merge(...array_values($this->items));
     }
 
     /**
