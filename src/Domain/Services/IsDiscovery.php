@@ -31,9 +31,7 @@ trait IsDiscovery
      */
     public function getItems(): DiscoveryItemsInterface
     {
-        if (! isset($this->discoveryItems)) {
-            $this->discoveryItems = new DiscoveryItems;
-        }
+        $this->discoveryItems ??= new DiscoveryItems;
 
         return $this->discoveryItems;
     }

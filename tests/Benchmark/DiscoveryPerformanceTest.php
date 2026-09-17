@@ -29,9 +29,7 @@ $__benchPreviousContainer = null;
 function savePreviousContainer(): void
 {
     global $__benchPreviousContainer;
-    if ($__benchPreviousContainer === null) {
-        $__benchPreviousContainer = Container::getInstance();
-    }
+    $__benchPreviousContainer ??= Container::getInstance();
 }
 
 function createBenchContainer(): Container

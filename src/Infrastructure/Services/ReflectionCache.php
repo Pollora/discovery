@@ -111,10 +111,8 @@ final class ReflectionCache implements ReflectionCacheInterface
      */
     public function getPublicMethods(string $className): array
     {
-        if (! isset($this->publicMethods[$className])) {
-            $this->publicMethods[$className] = $this->getClassReflection($className)
-                ->getMethods(ReflectionMethod::IS_PUBLIC);
-        }
+        $this->publicMethods[$className] ??= $this->getClassReflection($className)
+            ->getMethods(ReflectionMethod::IS_PUBLIC);
 
         return $this->publicMethods[$className];
     }
