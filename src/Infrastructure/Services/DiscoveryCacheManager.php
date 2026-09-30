@@ -131,6 +131,46 @@ class DiscoveryCacheManager
     }
 
     /**
+     * Classes on disk that the cached entry for a location does not list.
+     *
+     * They stay invisible to discovery — no hook, no post type, no route — until
+     * the cache is cleared, and nothing says so. Null when the location has no
+     * cached entry, or the cache is off, since then discovery reads the disk.
+     *
+     * @return list<string>|null
+     */
+    public function classesMissingFromCache(DiscoveryLocationInterface $location): ?array
+    {
+        if (! $this->shouldUseCache()) {
+            return null;
+        }
+
+        $cacheId = $this->generateCacheId($location);
+
+        if (! $this->cacheDriver->has($cacheId)) {
+            return null;
+        }
+
+        $names = static fn (array $structures): array => array_map(
+            static fn (mixed $structure): string => is_object($structure) && method_exists($structure, 'getFcqn') ? $structure->getFcqn() : (string) $structure,
+            $structures,
+        );
+
+        return array_values(array_diff(
+            $names(Discover::in($location->getPath())->full()->get()),
+            $names($this->cacheDriver->get($cacheId)),
+        ));
+    }
+
+    /**
+     * Whether discovery reads through a persistent cache (it does not in debug mode).
+     */
+    public function isCacheEnabled(): bool
+    {
+        return $this->shouldUseCache();
+    }
+
+    /**
      * Get the cache driver instance.
      */
     public function getCacheDriver(): ?DiscoverCacheDriver
