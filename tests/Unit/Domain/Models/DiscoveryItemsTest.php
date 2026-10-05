@@ -123,3 +123,32 @@ describe('DiscoveryItems', function (): void {
         expect($vendorItems)->toBeInstanceOf(DiscoveryItems::class);
     });
 });
+
+describe('DiscoveryItems pending items', function (): void {
+    it('has every item pending until marked applied', function (): void {
+        $items = new DiscoveryItems;
+        $items->addForLocation(new DiscoveryLocation('App\\Models', '/app/models'), ['item1', 'item2']);
+
+        expect($items->pending()->all())->toBe(['item1', 'item2']);
+
+        $items->markApplied();
+
+        expect($items->pending()->isLoaded())->toBeFalse()
+            ->and($items->all())->toBe(['item1', 'item2']);
+    });
+
+    it('keeps as pending only the items added since, in every location', function (): void {
+        $models = new DiscoveryLocation('App\\Models', '/app/models');
+        $theme = new DiscoveryLocation('Theme\\Demo', '/themes/demo');
+        $items = new DiscoveryItems;
+        $items->add($models, 'model1');
+        $items->markApplied();
+
+        $items->add($models, 'model2');
+        $items->add($theme, 'theme1');
+
+        expect($items->pending()->all())->toBe(['model2', 'theme1'])
+            ->and($items->pending())->not->toBe($items)
+            ->and($items->all())->toBe(['model1', 'model2', 'theme1']);
+    });
+});
