@@ -20,6 +20,7 @@ use Pollora\Discovery\Domain\Models\DiscoveryItems;
 use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Data\DiscoveredClass;
+use Spatie\StructureDiscoverer\Data\DiscoveredEnum;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 /**
@@ -419,11 +420,12 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
 
         foreach ($structures as $entry) {
             $structure = $entry['structure'];
-            if (! $structure instanceof DiscoveredClass) {
-                continue;
-            }
 
-            if ($structure->isAbstract) {
+            // Concrete classes, and enums carrying attributes (#[CapabilitySet]…).
+            $isDiscoverable = ($structure instanceof DiscoveredClass && ! $structure->isAbstract)
+                || ($structure instanceof DiscoveredEnum && $structure->attributes !== []);
+
+            if (! $isDiscoverable) {
                 continue;
             }
 
@@ -470,7 +472,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Process a single class for all applicable discoveries.
      *
-     * @param  DiscoveredClass  $structure  The discovered structure
+     * @param  DiscoveredClass|DiscoveredEnum  $structure  The discovered structure
      * @param  DiscoveryLocationInterface  $location  The discovery location
      * @param  string  $className  The fully qualified class name
      */
@@ -478,7 +480,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * @param  array<class-string>|null  $skipExcept  If set, only these discovery classes may process the structure
      */
     private function processClassForAllDiscoveries(
-        DiscoveredClass $structure,
+        DiscoveredClass|DiscoveredEnum $structure,
         DiscoveryLocationInterface $location,
         string $className,
         ?array $skipExcept = null
@@ -538,7 +540,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      * Uses Spatie's token-parsed data to detect the attribute without reflection.
      * Only loads reflection to read parameters when the attribute is found.
      */
-    private function getSkipDiscoveryAttribute(DiscoveredClass $structure): ?SkipDiscovery
+    private function getSkipDiscoveryAttribute(DiscoveredClass|DiscoveredEnum $structure): ?SkipDiscovery
     {
         foreach ($structure->attributes as $attribute) {
             if ($attribute->class === SkipDiscovery::class) {
@@ -552,7 +554,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     /**
      * Instantiate the #[SkipDiscovery] attribute to read its parameters.
      */
-    private function instantiateSkipDiscovery(DiscoveredClass $structure): SkipDiscovery
+    private function instantiateSkipDiscovery(DiscoveredClass|DiscoveredEnum $structure): SkipDiscovery
     {
         try {
             $className = $structure->namespace.'\\'.$structure->name;

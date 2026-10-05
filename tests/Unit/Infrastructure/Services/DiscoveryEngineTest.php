@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Container\Container;
 use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
+use Pollora\Attributes\CapabilitySet;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
@@ -14,6 +15,8 @@ use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use Pollora\Discovery\Domain\Services\IsDiscovery;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
+use Spatie\StructureDiscoverer\Data\DiscoveredClass;
+use Spatie\StructureDiscoverer\Data\DiscoveredEnum;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 function createEngine(?DiscoveryCacheManager $cacheManager = null): DiscoveryEngine
@@ -286,5 +289,54 @@ describe('DiscoveryEngine apply', function (): void {
 
         expect($discovery->applied)->toBe([['item']])
             ->and($discovery->getItems()->all())->toBe(['item']);
+    });
+});
+
+#[CapabilitySet]
+enum EngineTestAttributedEnum: string
+{
+    case Value = 'value';
+}
+
+enum EngineTestPlainEnum: string
+{
+    case Value = 'value';
+}
+
+final class EngineTestClass {}
+
+abstract class EngineTestAbstractClass {}
+
+describe('DiscoveryEngine structures', function (): void {
+    it('hands discoveries concrete classes and enums carrying attributes', function (): void {
+        $structures = array_map(
+            fn (string $name): DiscoveredStructure => enum_exists($name)
+                ? DiscoveredEnum::fromReflection(new ReflectionEnum($name))
+                : DiscoveredClass::fromReflection(new ReflectionClass($name)),
+            [EngineTestAttributedEnum::class, EngineTestPlainEnum::class, EngineTestClass::class, EngineTestAbstractClass::class]
+        );
+        $cacheManager = Mockery::mock(DiscoveryCacheManager::class);
+        $cacheManager->shouldReceive('getStructuresForLocation')->andReturn($structures);
+        $engine = createEngine($cacheManager);
+        $seen = [];
+        $discovery = new class($seen) implements DiscoveryInterface
+        {
+            use IsDiscovery;
+
+            public function __construct(private array &$seen) {}
+
+            public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure, ?ReflectionCacheInterface $reflectionCache = null): void
+            {
+                $this->seen[] = $structure->name;
+            }
+
+            public function apply(): void {}
+        };
+        $engine->addDiscovery('seen', $discovery);
+        $engine->addLocation(new DiscoveryLocation('Tests\\', __DIR__));
+
+        $engine->discover();
+
+        expect($seen)->toBe(['EngineTestAttributedEnum', 'EngineTestClass']);
     });
 });
