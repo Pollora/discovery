@@ -6,10 +6,15 @@ use Illuminate\Container\Container;
 use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
+use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
+use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
+use Pollora\Discovery\Domain\Models\DiscoveryLocation;
+use Pollora\Discovery\Domain\Services\IsDiscovery;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
+use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 function createEngine(?DiscoveryCacheManager $cacheManager = null): DiscoveryEngine
 {
@@ -186,5 +191,100 @@ describe('DiscoveryEngine', function (): void {
             expect($engine->getLocations())->toHaveCount(1);
             expect($clone->getLocations())->toHaveCount(2);
         });
+    });
+});
+
+describe('DiscoveryEngine apply', function (): void {
+    /**
+     * A discovery that records the items each apply() receives.
+     */
+    function recordingDiscovery(bool $failing = false): DiscoveryInterface
+    {
+        return new class($failing) implements DiscoveryInterface
+        {
+            use IsDiscovery;
+
+            /** @var list<list<mixed>> */
+            public array $applied = [];
+
+            public function __construct(private readonly bool $failing) {}
+
+            public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure, ?ReflectionCacheInterface $reflectionCache = null): void {}
+
+            public function apply(): void
+            {
+                $this->applied[] = $this->getItems()->all();
+
+                if ($this->failing) {
+                    throw new RuntimeException('apply failed');
+                }
+            }
+        };
+    }
+
+    it('applies each item once, however many times it is asked to apply', function (): void {
+        $engine = createEngine();
+        $discovery = recordingDiscovery();
+        $engine->addDiscovery('recording', $discovery);
+        $app = new DiscoveryLocation('App\\', '/app');
+        $theme = new DiscoveryLocation('Theme\\', '/theme');
+
+        $discovery->getItems()->add($app, 'app-item');
+        $engine->apply();
+        $engine->apply();
+        $discovery->getItems()->add($theme, 'theme-item');
+        $engine->apply();
+
+        expect($discovery->applied)->toBe([['app-item'], ['theme-item']]);
+    });
+
+    it('keeps every item readable after applying', function (): void {
+        $engine = createEngine();
+        $discovery = recordingDiscovery();
+        $engine->addDiscovery('recording', $discovery);
+        $location = new DiscoveryLocation('App\\', '/app');
+
+        $discovery->getItems()->add($location, 'first');
+        $engine->apply();
+        $discovery->getItems()->add($location, 'second');
+        $engine->apply();
+
+        expect($discovery->getItems()->all())->toBe(['first', 'second']);
+    });
+
+    it('applies once for the engine and its clones, which share the discovery', function (): void {
+        $engine = createEngine();
+        $discovery = recordingDiscovery();
+        $engine->addDiscovery('recording', $discovery);
+        $discovery->getItems()->add(new DiscoveryLocation('App\\', '/app'), 'item');
+
+        $engine->apply();
+        (clone $engine)->apply();
+
+        expect($discovery->applied)->toBe([['item']]);
+    });
+
+    it('does not call apply() when nothing new was discovered', function (): void {
+        $engine = createEngine();
+        $discovery = recordingDiscovery();
+        $engine->addDiscovery('recording', $discovery);
+
+        $engine->apply();
+
+        expect($discovery->applied)->toBe([]);
+    });
+
+    it('does not retry items whose apply failed, and restores the full list', function (): void {
+        $engine = createEngine();
+        $discovery = recordingDiscovery(failing: true);
+        $engine->addDiscovery('recording', $discovery);
+        $discovery->getItems()->add(new DiscoveryLocation('App\\', '/app'), 'item');
+
+        expect(fn (): DiscoveryEngine => $engine->apply())->toThrow(DiscoveryException::class);
+
+        $engine->apply();
+
+        expect($discovery->applied)->toBe([['item']])
+            ->and($discovery->getItems()->all())->toBe(['item']);
     });
 });

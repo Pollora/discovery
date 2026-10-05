@@ -31,6 +31,13 @@ final class DiscoveryItems implements DiscoveryItemsInterface
     ) {}
 
     /**
+     * How many items of each location have been applied, by location key
+     *
+     * @var array<string, int>
+     */
+    private array $applied = [];
+
+    /**
      * {@inheritDoc}
      */
     public function addForLocation(DiscoveryLocationInterface $location, array $values): static
@@ -104,6 +111,32 @@ final class DiscoveryItems implements DiscoveryItemsInterface
     public function all(): array
     {
         return $this->items === [] ? [] : array_merge(...array_values($this->items));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function pending(): static
+    {
+        $pending = [];
+
+        foreach ($this->items as $locationKey => $items) {
+            $remaining = array_slice($items, $this->applied[$locationKey] ?? 0);
+
+            if ($remaining !== []) {
+                $pending[$locationKey] = $remaining;
+            }
+        }
+
+        return new self($pending);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function markApplied(): void
+    {
+        $this->applied = array_map(count(...), $this->items);
     }
 
     /**

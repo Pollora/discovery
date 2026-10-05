@@ -188,7 +188,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
                 // Inject instance pool into discoveries that can use it
                 $this->injectInstancePoolIfSupported($discovery);
 
-                $discovery->apply();
+                $this->applyPending($discovery);
             } catch (\Throwable $e) {
                 throw DiscoveryException::applicationFailed($discovery::class, $e);
             }
@@ -306,13 +306,44 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         try {
             $this->discoverSingle($discovery);
-            $discovery->apply();
+            $this->applyPending($discovery);
         } catch (\Throwable $throwable) {
             $this->logDiscoveryError($discovery::class, $throwable);
             throw DiscoveryException::discoveryFailed($discovery::class, $throwable);
         }
 
         return $this;
+    }
+
+    /**
+     * Apply only the items the discovery has not applied yet.
+     *
+     * Discoveries are shared by every engine (the main one, its clones for
+     * modules) and their items accumulate across locations, so the engine is
+     * asked to apply several times per request. Handing the discovery only its
+     * new items makes each item apply once, whether or not the discovery's
+     * apply() is idempotent. Its full item list is restored afterwards, for
+     * whatever reads it later (status, doctor, dashboard).
+     *
+     * @param  DiscoveryInterface  $discovery  The discovery to apply
+     */
+    private function applyPending(DiscoveryInterface $discovery): void
+    {
+        $items = $discovery->getItems();
+        $pending = $items->pending();
+
+        if (! $pending->isLoaded()) {
+            return;
+        }
+
+        $discovery->setItems($pending);
+
+        try {
+            $discovery->apply();
+        } finally {
+            $items->markApplied();
+            $discovery->setItems($items);
+        }
     }
 
     /**

@@ -76,6 +76,23 @@ interface DiscoveryItemsInterface extends Countable, IteratorAggregate
     public function all(): array;
 
     /**
+     * Get the items not applied yet
+     *
+     * Creates a new instance holding, for each location, the items added
+     * since the last call to markApplied().
+     *
+     * @return static A new instance with only the pending items
+     */
+    public function pending(): static;
+
+    /**
+     * Mark every current item as applied
+     *
+     * Items added afterwards are the next pending() ones.
+     */
+    public function markApplied(): void;
+
+    /**
      * Serialize the discovery items for caching.
      *
      * @return array<string, mixed>
