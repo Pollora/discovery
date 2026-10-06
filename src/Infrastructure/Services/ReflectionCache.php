@@ -215,8 +215,6 @@ final class ReflectionCache implements ReflectionCacheInterface
         $methodsWithAttributes = [];
 
         foreach ($this->getPublicMethods($className) as $method) {
-            $hasMatchingAttribute = false;
-
             if ($attributeClass === null) {
                 // Get all methods with any attributes
                 $hasMatchingAttribute = ! empty($method->getAttributes());
