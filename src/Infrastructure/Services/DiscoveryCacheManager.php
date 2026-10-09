@@ -40,6 +40,13 @@ class DiscoveryCacheManager
      */
     private readonly ?DiscoverCacheDriver $cacheDriver;
 
+    /**
+     * Where each location's structures came from in this process, in order.
+     *
+     * @var list<array{path: string, source: 'memory'|'cache'|'disk', milliseconds: float, structures: int}>
+     */
+    private array $scans = [];
+
     public function __construct(
         private readonly Container $container,
         private readonly DebugDetectorInterface $debugDetector
@@ -60,11 +67,16 @@ class DiscoveryCacheManager
 
         if (isset(self::$structuresCache[$cacheId])) {
             $context->recordCacheHit();
+            $this->recordScan($location, 'memory', 0.0, count(self::$structuresCache[$cacheId]));
 
             return self::$structuresCache[$cacheId];
         }
 
         $context->recordCacheMiss();
+
+        // Asked before reading: once the discoverer has run, a cold cache has
+        // been filled and looks exactly like a warm one.
+        $fromCache = $this->shouldUseCache() && $this->cacheDriver->has($cacheId);
 
         $discover = $this->createSpatieDiscoverer($location, $cacheId);
 
@@ -73,10 +85,39 @@ class DiscoveryCacheManager
         $elapsed = (microtime(true) - $startedAt) * 1000;
 
         self::$structuresCache[$cacheId] = $structures;
+        $this->recordScan($location, $fromCache ? 'cache' : 'disk', $elapsed, count($structures));
 
         $this->warnIfSlow($location, $elapsed, count($structures));
 
         return $structures;
+    }
+
+    /**
+     * Where each location's structures came from, and what it cost.
+     *
+     * `memory` is this process's own copy, `cache` the persistent cache, `disk`
+     * a real scan — the one that costs, and the only one in debug mode, where
+     * the persistent cache is off. The context's hit and miss counters only
+     * know about the first of the three.
+     *
+     * @return list<array{path: string, source: 'memory'|'cache'|'disk', milliseconds: float, structures: int}>
+     */
+    public function scans(): array
+    {
+        return $this->scans;
+    }
+
+    /**
+     * @param  'memory'|'cache'|'disk'  $source
+     */
+    private function recordScan(DiscoveryLocationInterface $location, string $source, float $milliseconds, int $structures): void
+    {
+        $this->scans[] = [
+            'path' => $location->getPath(),
+            'source' => $source,
+            'milliseconds' => round($milliseconds, 2),
+            'structures' => $structures,
+        ];
     }
 
     /**
