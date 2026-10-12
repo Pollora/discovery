@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Domain\Services;
 
+use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 use Pollora\Discovery\Infrastructure\Services\InstancePool;
 
 /**
@@ -31,6 +32,9 @@ trait HasInstancePool
     /**
      * Get an instance from the pool if available, otherwise use fallback.
      *
+     * Without a pool or a fallback, the class is resolved through Laravel's
+     * container when there is one, and built by reflection otherwise.
+     *
      * @param  string  $className  The class name to instantiate
      * @param  callable|null  $fallback  Optional fallback creation function
      * @return object The class instance
@@ -45,7 +49,11 @@ trait HasInstancePool
             return $fallback();
         }
 
-        return resolve($className);
+        if (function_exists('resolve')) {
+            return resolve($className);
+        }
+
+        return (new ReflectionInstanceResolver)->make($className);
     }
 
     /**

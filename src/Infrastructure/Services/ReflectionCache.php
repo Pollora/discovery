@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Infrastructure\Services;
 
-use Illuminate\Container\Container;
+use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
+use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -54,7 +55,7 @@ final class ReflectionCache implements ReflectionCacheInterface
     private array $publicMethods = [];
 
     /**
-     * Cache for class instances from DI container
+     * Cache for class instances built by the resolver
      *
      * @var array<string, object>
      */
@@ -68,13 +69,13 @@ final class ReflectionCache implements ReflectionCacheInterface
     private array $processedClasses = [];
 
     /**
-     * DI Container for instance resolution
+     * Builds the instances the pool does not hold yet
      */
-    private readonly Container $container;
+    private readonly InstanceResolverInterface $resolver;
 
-    public function __construct(?Container $container = null)
+    public function __construct(?InstanceResolverInterface $resolver = null)
     {
-        $this->container = $container ?? app();
+        $this->resolver = $resolver ?? new ReflectionInstanceResolver;
     }
 
     /**
@@ -165,7 +166,7 @@ final class ReflectionCache implements ReflectionCacheInterface
                     throw new \InvalidArgumentException(sprintf('Class %s is not instantiable', $className));
                 }
 
-                $this->classInstances[$className] = $this->container->make($className);
+                $this->classInstances[$className] = $this->resolver->make($className);
             } catch (\Throwable $e) {
                 throw new \RuntimeException(
                     sprintf('Failed to instantiate class %s: %s', $className, $e->getMessage()),

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Infrastructure\Services;
 
-use Illuminate\Container\Container;
+use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
+use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 
 /**
  * Instance Pool
@@ -16,7 +17,7 @@ use Illuminate\Container\Container;
  * Key features:
  * - Single instance per class across all discoveries
  * - Circular dependency detection during instantiation
- * - Lazy loading with automatic DI container resolution
+ * - Lazy loading through the instance resolver
  * - Memory-efficient cleanup and pooling strategies
  * - Thread-safe operations for concurrent access
  */
@@ -49,13 +50,13 @@ final class InstancePool
     ];
 
     /**
-     * DI Container for instance resolution
+     * Builds the instances the pool does not hold yet
      */
-    private readonly Container $container;
+    private readonly InstanceResolverInterface $resolver;
 
-    public function __construct(?Container $container = null)
+    public function __construct(?InstanceResolverInterface $resolver = null)
     {
-        $this->container = $container ?? app();
+        $this->resolver = $resolver ?? new ReflectionInstanceResolver;
     }
 
     /**
@@ -91,8 +92,8 @@ final class InstancePool
             // Mark as currently instantiating
             $this->instantiating[$className] = true;
 
-            // Create instance through DI container
-            $instance = $this->container->make($className);
+            // Create instance through the resolver
+            $instance = $this->resolver->make($className);
 
             // Store in pool
             $this->instances[$className] = $instance;
@@ -304,8 +305,3 @@ final class InstancePool
         return round($bytes, 2).' '.$units[$unitIndex];
     }
 }
-
-/**
- * Exception thrown when circular dependency is detected during instantiation
- */
-class CircularDependencyException extends \RuntimeException {}

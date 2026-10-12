@@ -4,22 +4,20 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Infrastructure\Services;
 
-use Illuminate\Container\Container;
-use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
-use Spatie\StructureDiscoverer\Cache\LaravelDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Discover;
 
 /**
  * Manages caching for the discovery engine.
  *
- * Handles Spatie's structure discoverer cache configuration,
- * in-memory static caching of discovered structures, and
- * cache driver resolution from Laravel configuration.
+ * Handles Spatie's structure discoverer cache and the in-memory static
+ * cache of discovered structures. The persistent cache driver is given by
+ * the environment: without one, or with Spatie's null driver, every
+ * process scans the disk.
  */
 class DiscoveryCacheManager
 {
@@ -36,23 +34,22 @@ class DiscoveryCacheManager
     private const int SLOW_SCAN_MS = 250;
 
     /**
-     * Resolved cache driver for Spatie's structure discovery.
-     */
-    private readonly ?DiscoverCacheDriver $cacheDriver;
-
-    /**
      * Where each location's structures came from in this process, in order.
      *
      * @var list<array{path: string, source: 'memory'|'cache'|'disk', milliseconds: float, structures: int}>
      */
     private array $scans = [];
 
+    /**
+     * @param  DiscoverCacheDriver|null  $cacheDriver  Persistent cache for Spatie's structure discovery
+     * @param  LoggerInterface|null  $logger  Where slow scans are reported
+     * @param  bool  $warnOnSlowScans  Report scans above the threshold (meant for debug mode, where the cache is off)
+     */
     public function __construct(
-        private readonly Container $container,
-        private readonly DebugDetectorInterface $debugDetector
-    ) {
-        $this->cacheDriver = $this->resolveCacheDriver();
-    }
+        private readonly ?DiscoverCacheDriver $cacheDriver = null,
+        private readonly ?LoggerInterface $logger = null,
+        private readonly bool $warnOnSlowScans = false,
+    ) {}
 
     /**
      * Get structures for a specific location, using static and Spatie cache.
@@ -136,12 +133,12 @@ class DiscoveryCacheManager
      */
     private function warnIfSlow(DiscoveryLocationInterface $location, float $elapsed, int $structures): void
     {
-        if ($elapsed < self::SLOW_SCAN_MS || ! $this->debugDetector->isDebugMode()) {
+        if ($elapsed < self::SLOW_SCAN_MS || ! $this->warnOnSlowScans) {
             return;
         }
 
         try {
-            $this->container->make(LoggerInterface::class)->warning(sprintf(
+            $this->logger?->warning(sprintf(
                 'Pollora discovery scanned %s in %dms for %d structure(s). '
                 .'A directory this slow usually holds node_modules, vendor or a build output; '
                 .'discovery walks every file in it on each request while the cache is off.',
@@ -150,7 +147,7 @@ class DiscoveryCacheManager
                 $structures
             ));
         } catch (\Throwable) {
-            // A missing logger must not turn a warning into a failure.
+            // A failing logger must not turn a warning into a failure.
         }
     }
 
@@ -225,30 +222,6 @@ class DiscoveryCacheManager
     public function getStaticCacheSize(): int
     {
         return count(self::$structuresCache);
-    }
-
-    /**
-     * Resolve the cache driver from Laravel configuration.
-     */
-    private function resolveCacheDriver(): ?DiscoverCacheDriver
-    {
-        if ($this->debugDetector->isDebugMode()) {
-            return new NullDiscoverCacheDriver;
-        }
-
-        $cacheConfig = config('structure-discoverer.cache', []);
-        $driverClass = $cacheConfig['driver'] ?? LaravelDiscoverCacheDriver::class;
-        $store = $cacheConfig['store'] ?? null;
-
-        if ($driverClass === LaravelDiscoverCacheDriver::class) {
-            return new LaravelDiscoverCacheDriver(prefix: 'pollora', store: $store);
-        }
-
-        try {
-            return $this->container->make($driverClass);
-        } catch (\Throwable) {
-            return new LaravelDiscoverCacheDriver(prefix: 'pollora', store: $store);
-        }
     }
 
     /**

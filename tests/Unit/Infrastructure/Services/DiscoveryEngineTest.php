@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use Illuminate\Container\Container;
-use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Attributes\CapabilitySet;
+use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
+use Pollora\Discovery\Domain\Contracts\DiscoveryRegistrarInterface;
+use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
@@ -21,12 +22,7 @@ use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 function createEngine(?DiscoveryCacheManager $cacheManager = null): DiscoveryEngine
 {
-    $container = new Container;
-    $debugDetector = Mockery::mock(DebugDetectorInterface::class, ['isDebugMode' => true]);
-
     return new DiscoveryEngine(
-        $container,
-        $debugDetector,
         cacheManager: $cacheManager ?? Mockery::mock(DiscoveryCacheManager::class)
     );
 }
@@ -338,5 +334,65 @@ describe('DiscoveryEngine structures', function (): void {
         $engine->discover();
 
         expect($seen)->toBe(['EngineTestAttributedEnum', 'EngineTestClass']);
+    });
+});
+
+final class EngineTestNamedDiscovery implements DiscoveryInterface
+{
+    use IsDiscovery;
+
+    public function discover(DiscoveryLocationInterface $location, DiscoveredStructure $structure, ?ReflectionCacheInterface $reflectionCache = null): void {}
+
+    public function apply(): void {}
+}
+
+describe('DiscoveryEngine without Laravel', function (): void {
+    it('builds a discovery given by class name through its resolver', function (): void {
+        $built = new EngineTestNamedDiscovery;
+        $resolver = Mockery::mock(InstanceResolverInterface::class);
+        $resolver->shouldReceive('make')->once()->with(EngineTestNamedDiscovery::class)->andReturn($built);
+        $engine = new DiscoveryEngine(resolver: $resolver, cacheManager: Mockery::mock(DiscoveryCacheManager::class));
+
+        $engine->addDiscovery('named', EngineTestNamedDiscovery::class);
+
+        expect($engine->getDiscovery('named'))->toBe($built);
+    });
+
+    it('builds a discovery given by class name by reflection when it has no resolver', function (): void {
+        $engine = new DiscoveryEngine(cacheManager: Mockery::mock(DiscoveryCacheManager::class));
+
+        $engine->addDiscovery('named', EngineTestNamedDiscovery::class);
+
+        expect($engine->getDiscovery('named'))->toBeInstanceOf(EngineTestNamedDiscovery::class);
+    });
+
+    it("asks its registrar for the environment's discoveries before discovering", function (): void {
+        $cacheManager = Mockery::mock(DiscoveryCacheManager::class);
+        $cacheManager->shouldReceive('getStructuresForLocation')->andReturn([]);
+        $registrar = Mockery::mock(DiscoveryRegistrarInterface::class);
+        $registrar->shouldReceive('registerInto')->once()
+            ->andReturnUsing(function (DiscoveryEngineInterface $engine): array {
+                $engine->addDiscovery('registered', new EngineTestNamedDiscovery);
+
+                return ['registered'];
+            });
+        $engine = new DiscoveryEngine(cacheManager: $cacheManager, registrar: $registrar);
+        $engine->addLocation(new DiscoveryLocation('Tests\\', __DIR__));
+
+        $engine->discover();
+
+        expect($engine->getDiscoveries()->keys()->all())->toBe(['registered']);
+    });
+
+    it('runs only the discoveries added to it when it has no registrar', function (): void {
+        $cacheManager = Mockery::mock(DiscoveryCacheManager::class);
+        $cacheManager->shouldReceive('getStructuresForLocation')->andReturn([]);
+        $engine = new DiscoveryEngine(cacheManager: $cacheManager);
+        $engine->addDiscovery('explicit', new EngineTestNamedDiscovery);
+        $engine->addLocation(new DiscoveryLocation('Tests\\', __DIR__));
+
+        $engine->discover();
+
+        expect($engine->getDiscoveries()->keys()->all())->toBe(['explicit']);
     });
 });

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Facades\Facade;
-use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
@@ -47,17 +46,6 @@ function restorePreviousContainer(): void
     if ($__benchPreviousContainer instanceof Container) {
         Container::setInstance($__benchPreviousContainer);
     }
-}
-
-function createBenchDebugDetector(): DebugDetectorInterface
-{
-    return new class implements DebugDetectorInterface
-    {
-        public function isDebugMode(): bool
-        {
-            return true;
-        }
-    };
 }
 
 function clearDiscoveryCacheManagerStatic(): void
@@ -104,9 +92,9 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(100);
 
         try {
-            $container = createBenchContainer();
-            $cacheManager = new DiscoveryCacheManager($container, createBenchDebugDetector());
-            $reflectionCache = new ReflectionCache($container);
+            createBenchContainer();
+            $cacheManager = new DiscoveryCacheManager;
+            $reflectionCache = new ReflectionCache;
             $context = new DiscoveryContext($reflectionCache);
 
             $location = new DiscoveryLocation(
@@ -130,8 +118,8 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(100);
 
         try {
-            $container = createBenchContainer();
-            $engine = new DiscoveryEngine($container, createBenchDebugDetector());
+            createBenchContainer();
+            $engine = new DiscoveryEngine;
 
             $location = new DiscoveryLocation(
                 $setup['info']['namespace'],
@@ -163,8 +151,8 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(500);
 
         try {
-            $container = createBenchContainer();
-            $engine = new DiscoveryEngine($container, createBenchDebugDetector());
+            createBenchContainer();
+            $engine = new DiscoveryEngine;
 
             $location = new DiscoveryLocation(
                 $setup['info']['namespace'],
@@ -195,10 +183,10 @@ describe('Discovery Performance', function (): void {
     it('scales near-linearly from 100 to 500 classes', function (): void {
         // Benchmark 100 classes
         $setup100 = generateAndRegister(100);
-        $container = createBenchContainer();
+        createBenchContainer();
 
         try {
-            $engine100 = new DiscoveryEngine($container, createBenchDebugDetector());
+            $engine100 = new DiscoveryEngine;
             $loc100 = new DiscoveryLocation($setup100['info']['namespace'], $setup100['info']['path']);
             $engine100->addLocation($loc100);
             $engine100->addDiscovery('hooks', new BenchmarkDiscovery('hooks'));
@@ -219,7 +207,7 @@ describe('Discovery Performance', function (): void {
         $setup500 = generateAndRegister(500);
 
         try {
-            $engine500 = new DiscoveryEngine($container, createBenchDebugDetector());
+            $engine500 = new DiscoveryEngine;
             $loc500 = new DiscoveryLocation($setup500['info']['namespace'], $setup500['info']['path']);
             $engine500->addLocation($loc500);
             $engine500->addDiscovery('hooks', new BenchmarkDiscovery('hooks'));
@@ -245,8 +233,8 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(250);
 
         try {
-            $container = createBenchContainer();
-            $engine = new DiscoveryEngine($container, createBenchDebugDetector());
+            createBenchContainer();
+            $engine = new DiscoveryEngine;
 
             $location = new DiscoveryLocation(
                 $setup['info']['namespace'],
@@ -300,8 +288,8 @@ describe('Discovery Performance', function (): void {
         }
 
         try {
-            $container = createBenchContainer();
-            $engine = new DiscoveryEngine($container, createBenchDebugDetector());
+            createBenchContainer();
+            $engine = new DiscoveryEngine;
 
             foreach ($multiInfo['locations'] as $loc) {
                 $engine->addLocation(new DiscoveryLocation($loc['namespace'], $loc['path']));

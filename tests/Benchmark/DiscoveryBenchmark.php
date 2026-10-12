@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Benchmark;
 
-use Illuminate\Container\Container;
-use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
@@ -21,10 +19,6 @@ use Tests\Benchmark\Fixtures\FixtureGenerator;
  */
 final class DiscoveryBenchmark
 {
-    private readonly Container $container;
-
-    private readonly DebugDetectorInterface $debugDetector;
-
     private readonly string $fixturesBasePath;
 
     /** @var array<string, array<string, mixed>> */
@@ -35,17 +29,6 @@ final class DiscoveryBenchmark
 
     public function __construct()
     {
-        $this->container = new Container;
-        Container::setInstance($this->container);
-
-        $this->debugDetector = new class implements DebugDetectorInterface
-        {
-            public function isDebugMode(): bool
-            {
-                return true; // Force no persistent cache
-            }
-        };
-
         $this->fixturesBasePath = __DIR__.'/Generated';
     }
 
@@ -170,8 +153,8 @@ final class DiscoveryBenchmark
      */
     private function benchmarkSpatieScan(array $fixtureInfo): array
     {
-        $cacheManager = new DiscoveryCacheManager($this->container, $this->debugDetector);
-        $reflectionCache = new ReflectionCache($this->container);
+        $cacheManager = new DiscoveryCacheManager;
+        $reflectionCache = new ReflectionCache;
         $context = new DiscoveryContext($reflectionCache);
 
         $location = new DiscoveryLocation(
@@ -199,10 +182,7 @@ final class DiscoveryBenchmark
      */
     private function benchmarkFullDiscovery(array $fixtureInfo): array
     {
-        $engine = new DiscoveryEngine(
-            $this->container,
-            $this->debugDetector
-        );
+        $engine = new DiscoveryEngine;
 
         $location = new DiscoveryLocation(
             $fixtureInfo['namespace'],
@@ -217,13 +197,16 @@ final class DiscoveryBenchmark
         $engine->addDiscovery('rest_routes', new BenchmarkDiscovery('rest_routes'));
         $engine->addDiscovery('schedules', new BenchmarkDiscovery('schedules'));
 
-        $memBefore = memory_get_usage(true);
+        // memory_get_usage(true) counts 2 MB blocks from the system, which
+        // hides anything smaller: measure what PHP allocates, from a reset peak.
+        memory_reset_peak_usage();
+        $memBefore = memory_get_usage();
         $start = hrtime(true);
 
         $engine->discover();
 
         $elapsed = (hrtime(true) - $start) / 1_000_000;
-        $memAfter = memory_get_peak_usage(true);
+        $memAfter = memory_get_peak_usage();
 
         $stats = $engine->getPerformanceStats();
 
@@ -271,7 +254,7 @@ final class DiscoveryBenchmark
             $this->clearStaticCaches();
 
             // Full discovery with multiple locations
-            $engine = new DiscoveryEngine($this->container, $this->debugDetector);
+            $engine = new DiscoveryEngine;
 
             foreach ($multiInfo['locations'] as $loc) {
                 $engine->addLocation(new DiscoveryLocation($loc['namespace'], $loc['path']));
@@ -283,7 +266,8 @@ final class DiscoveryBenchmark
             $engine->addDiscovery('rest_routes', new BenchmarkDiscovery('rest_routes'));
             $engine->addDiscovery('schedules', new BenchmarkDiscovery('schedules'));
 
-            $memBefore = memory_get_usage(true);
+            memory_reset_peak_usage();
+            $memBefore = memory_get_usage();
             $start = hrtime(true);
             $engine->discover();
             $elapsed = (hrtime(true) - $start) / 1_000_000;
@@ -294,7 +278,7 @@ final class DiscoveryBenchmark
             }
 
             $timings['scan'][] = $elapsed; // Combined scan + processing
-            $timings['memory'][] = (memory_get_peak_usage(true) - $memBefore) / (1024 * 1024);
+            $timings['memory'][] = (memory_get_peak_usage() - $memBefore) / (1024 * 1024);
             $timings['items'][] = $totalItems;
 
             echo " done\n";

@@ -9,6 +9,10 @@ namespace Pollora\Discovery\Domain\Contracts;
  *
  * Defines the contract for caching discovered items to improve
  * performance by avoiding repeated discovery operations.
+ *
+ * @deprecated Removed in 15.0. Nothing in Pollora reads this cache:
+ *             scans are cached by the Spatie DiscoverCacheDriver given to
+ *             DiscoveryCacheManager (Psr16DiscoverCacheDriver outside Laravel).
  */
 interface DiscoveryCacheInterface
 {

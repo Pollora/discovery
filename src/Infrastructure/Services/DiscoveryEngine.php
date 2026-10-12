@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Infrastructure\Services;
 
-use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
-use Pollora\Application\Domain\Contracts\DebugDetectorInterface;
 use Pollora\Attributes\SkipDiscovery;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
+use Pollora\Discovery\Domain\Contracts\DiscoveryRegistrarInterface;
+use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryException;
 use Pollora\Discovery\Domain\Exceptions\DiscoveryNotFoundException;
 use Pollora\Discovery\Domain\Exceptions\InvalidDiscoveryException;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryItems;
+use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Data\DiscoveredClass;
@@ -67,29 +68,33 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     private readonly DiscoveryCacheManager $cacheManager;
 
     /**
-     * Registrar for auto-discovering Discovery classes
+     * Builds the discovery classes given by name
      */
-    private readonly DiscoveryRegistrar $registrar;
+    private readonly InstanceResolverInterface $resolver;
 
     /**
      * Create a new discovery engine
      *
-     * @param  Container  $container  The service container for dependency injection
-     * @param  DebugDetectorInterface  $debugDetector  Debug mode detector
+     * Every dependency is optional: without them, the engine builds classes
+     * by reflection, keeps no persistent cache and runs only the discoveries
+     * added to it explicitly.
+     *
+     * @param  InstanceResolverInterface|null  $resolver  Builds the discovery classes given by name
      * @param  ReflectionCacheInterface|null  $reflectionCache  Optional reflection cache
      * @param  InstancePool|null  $instancePool  Optional instance pool
      * @param  LoggerInterface|null  $logger  Optional PSR-3 logger
      * @param  DiscoveryCacheManager|null  $cacheManager  Optional cache manager
+     * @param  DiscoveryRegistrarInterface|null  $registrar  Adds the environment's discoveries before each run
      * @param  array<class-string>  $skipClasses  Classes to exclude from discovery
      * @param  array<string>  $skipPaths  Path patterns to exclude from discovery
      */
     public function __construct(
-        private readonly Container $container,
-        DebugDetectorInterface $debugDetector,
+        ?InstanceResolverInterface $resolver = null,
         ?ReflectionCacheInterface $reflectionCache = null,
         ?InstancePool $instancePool = null,
         private readonly ?LoggerInterface $logger = null,
         ?DiscoveryCacheManager $cacheManager = null,
+        private readonly ?DiscoveryRegistrarInterface $registrar = null,
         private readonly array $skipClasses = [],
         private readonly array $skipPaths = [],
     ) {
@@ -97,11 +102,11 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         $this->discoveries = new Collection;
 
         // Initialize optimized services
-        $reflectionCache ??= new ReflectionCache($container);
-        $this->instancePool = $instancePool ?? new InstancePool($container);
+        $this->resolver = $resolver ?? new ReflectionInstanceResolver;
+        $reflectionCache ??= new ReflectionCache($this->resolver);
+        $this->instancePool = $instancePool ?? new InstancePool($this->resolver);
         $this->context = new DiscoveryContext($reflectionCache);
-        $this->cacheManager = $cacheManager ?? new DiscoveryCacheManager($container, $debugDetector);
-        $this->registrar = new DiscoveryRegistrar($container, $this->logger);
+        $this->cacheManager = $cacheManager ?? new DiscoveryCacheManager;
     }
 
     /**
@@ -169,8 +174,8 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function discover(): static
     {
-        // Auto-register Discovery classes from container bindings
-        $this->registrar->registerFromContainer($this);
+        // Add the discoveries the environment provides
+        $this->registrar?->registerInto($this);
 
         $allStructures = $this->discoverAllStructures();
 
@@ -379,7 +384,7 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
         }
 
         try {
-            return $this->container->make($discovery);
+            return $this->resolver->make($discovery);
         } catch (\Throwable $throwable) {
             throw InvalidDiscoveryException::invalidClass($discovery, 'Cannot instantiate: '.$throwable->getMessage());
         }
