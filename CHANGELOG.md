@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-12
+
+A first version for the framework's next release to build on; 1.0.0 comes with that release.
+
 ### Added
 
 - First release, extracted from `pollora/framework` (`src/Discovery`) with its history. Namespaces are unchanged: `Pollora\Discovery\*`, and `Pollora\Attributes\SkipDiscovery`
