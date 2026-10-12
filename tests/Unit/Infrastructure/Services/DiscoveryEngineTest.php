@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Pollora\Attributes\CapabilitySet;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
@@ -36,6 +35,9 @@ function createLocationMock(string $path): DiscoveryLocationInterface
 
     return $location;
 }
+
+#[Attribute(Attribute::TARGET_CLASS)]
+final class EngineTestMarker {}
 
 describe('DiscoveryEngine', function (): void {
     describe('addLocation', function (): void {
@@ -288,7 +290,7 @@ describe('DiscoveryEngine apply', function (): void {
     });
 });
 
-#[CapabilitySet]
+#[EngineTestMarker]
 enum EngineTestAttributedEnum: string
 {
     case Value = 'value';

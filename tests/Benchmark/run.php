@@ -16,7 +16,7 @@ require_once __DIR__.'/../../vendor/autoload.php';
 
 // Register benchmark namespace autoloader
 spl_autoload_register(function (string $class): void {
-    $prefix = 'Tests\\Benchmark\\';
+    $prefix = 'Pollora\\Discovery\\Tests\\Benchmark\\';
     if (! str_starts_with($class, $prefix)) {
         return;
     }
@@ -28,7 +28,7 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-use Tests\Benchmark\DiscoveryBenchmark;
+use Pollora\Discovery\Tests\Benchmark\DiscoveryBenchmark;
 
 // Parse arguments
 $args = array_slice($argv, 1);

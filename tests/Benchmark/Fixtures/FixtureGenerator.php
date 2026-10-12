@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Tests\Benchmark\Fixtures;
+namespace Pollora\Discovery\Tests\Benchmark\Fixtures;
+
+// The attributes the generated classes carry, with the parameters of the
+// framework's own: a discovery instantiates every one it reads.
+require_once __DIR__.'/attributes.php';
 
 /**
  * Generates PHP class files with realistic Pollora attribute complexity for benchmarking.
@@ -25,7 +29,7 @@ namespace Tests\Benchmark\Fixtures;
  */
 final readonly class FixtureGenerator
 {
-    public function __construct(private string $basePath, private string $namespace = 'Tests\\Benchmark\\Generated') {}
+    public function __construct(private string $basePath, private string $namespace = 'Pollora\\Discovery\\Tests\\Benchmark\\Generated') {}
 
     /**
      * Generate a set of fixture classes.
@@ -229,7 +233,7 @@ final readonly class FixtureGenerator
                 $hookName = sprintf('bench_hook_%d_%d_%d', $index, $m, $a);
                 $attr = ($m + $a) % 3 === 0 ? 'Filter' : 'Action';
                 $priority = (($m * 3) + $a) * 5 + 10;
-                $attrs .= "    #[\\Pollora\\Attributes\\{$attr}(hook: '{$hookName}', priority: {$priority})]\n";
+                $attrs .= "    #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\{$attr}(hook: '{$hookName}', priority: {$priority})]\n";
             }
 
             $methods .= <<<PHP
@@ -297,18 +301,18 @@ final readonly class FixtureGenerator
 
         // Pool of class-level PostType sub-attributes
         $subAttributes = [
-            "#[\\Pollora\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail', 'excerpt', 'comments'])]",
-            "#[\\Pollora\\Attributes\\PostType\\MenuIcon(value: 'dashicons-admin-post')]",
-            '#[\\Pollora\\Attributes\\PostType\\HasArchive(value: true)]',
-            '#[\\Pollora\\Attributes\\PostType\\ShowInRest(value: true)]',
-            '#[\\Pollora\\Attributes\\PostType\\ShowUI(value: true)]',
-            '#[\\Pollora\\Attributes\\PostType\\Hierarchical(value: false)]',
-            '#[\\Pollora\\Attributes\\PostType\\PublicPostType(value: true)]',
-            '#[\\Pollora\\Attributes\\PostType\\MenuPosition(value: 25)]',
-            '#[\\Pollora\\Attributes\\PostType\\ExcludeFromSearch(value: false)]',
-            '#[\\Pollora\\Attributes\\PostType\\PubliclyQueryable(value: true)]',
-            '#[\\Pollora\\Attributes\\PostType\\CanExport(value: true)]',
-            '#[\\Pollora\\Attributes\\PostType\\DeleteWithUser(value: false)]',
+            "#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail', 'excerpt', 'comments'])]",
+            "#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\MenuIcon(value: 'dashicons-admin-post')]",
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\HasArchive(value: true)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\ShowInRest(value: true)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\ShowUI(value: true)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\Hierarchical(value: false)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\PublicPostType(value: true)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\MenuPosition(value: 25)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\ExcludeFromSearch(value: false)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\PubliclyQueryable(value: true)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\CanExport(value: true)]',
+            '#[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\DeleteWithUser(value: false)]',
         ];
 
         // Pick 3-8 sub-attributes based on index
@@ -323,7 +327,7 @@ final readonly class FixtureGenerator
 
             namespace {$ns};
 
-            use Pollora\\Attributes\\PostType;
+            use Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType;
 
             #[PostType(slug: '{$slug}', singular: 'Bench {$index}', plural: 'Benches {$index}')]
             {$attrBlock}
@@ -368,7 +372,7 @@ final readonly class FixtureGenerator
 
             $methods .= <<<PHP
 
-                #[\\Pollora\\Attributes\\WpRestRoute\\Method(methods: '{$httpMethod}')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\WpRestRoute\\Method(methods: '{$httpMethod}')]
                 public function {$methodName}(int \$id = 0): array
                 {
                     return ['id' => \$id, 'method' => '{$httpMethod}'];
@@ -384,7 +388,7 @@ final readonly class FixtureGenerator
 
             namespace {$ns};
 
-            use Pollora\\Attributes\\WpRestRoute;
+            use Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\WpRestRoute;
 
             #[WpRestRoute(namespace: 'bench/v1', route: '/items-{$index}/(?P<id>\d+)')]
             class {$className}
@@ -410,7 +414,7 @@ final readonly class FixtureGenerator
             $hookName = sprintf('bench_cron_%d_%d', $index, $m);
             $methods .= <<<PHP
 
-                #[\\Pollora\\Attributes\\Schedule(recurrence: '{$recurrence}', hook: '{$hookName}')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Schedule(recurrence: '{$recurrence}', hook: '{$hookName}')]
                 public function task{$m}(): void
                 {
                     // Benchmark scheduled task {$m}
@@ -462,7 +466,7 @@ final readonly class FixtureGenerator
             $hookName = sprintf('bench_mixed_hook_%d_%d', $index, $m);
             $methods .= <<<PHP
 
-                #[\\Pollora\\Attributes\\Action(hook: '{$hookName}', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: '{$hookName}', priority: 10)]
                 public function onHook{$m}(): void
                 {
                     // Mixed hook handler
@@ -478,13 +482,13 @@ final readonly class FixtureGenerator
 
             namespace {$ns};
 
-            use Pollora\\Attributes\\PostType;
+            use Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType;
 
             #[PostType(slug: '{$slug}', singular: 'Mixed {$index}', plural: 'Mixeds {$index}')]
-            #[\\Pollora\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail'])]
-            #[\\Pollora\\Attributes\\PostType\\ShowInRest(value: true)]
-            #[\\Pollora\\Attributes\\PostType\\HasArchive(value: true)]
-            #[\\Pollora\\Attributes\\PostType\\MenuIcon(value: 'dashicons-portfolio')]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail'])]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\ShowInRest(value: true)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\HasArchive(value: true)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\MenuIcon(value: 'dashicons-portfolio')]
             class {$className}
             {
             {$methods}
@@ -504,43 +508,43 @@ final readonly class FixtureGenerator
 
             namespace {$ns};
 
-            use Pollora\\Attributes\\WpRestRoute;
+            use Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\WpRestRoute;
 
             #[WpRestRoute(namespace: 'bench/v1', route: '/mixed-{$index}')]
             class {$className}
             {
-                #[\\Pollora\\Attributes\\WpRestRoute\\Method(methods: 'GET')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\WpRestRoute\\Method(methods: 'GET')]
                 public function index(): array
                 {
                     return [];
                 }
 
-                #[\\Pollora\\Attributes\\WpRestRoute\\Method(methods: 'POST')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\WpRestRoute\\Method(methods: 'POST')]
                 public function store(): array
                 {
                     return [];
                 }
 
-                #[\\Pollora\\Attributes\\WpRestRoute\\Method(methods: 'DELETE')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\WpRestRoute\\Method(methods: 'DELETE')]
                 public function destroy(int \$id): array
                 {
                     return ['deleted' => \$id];
                 }
 
-                #[\\Pollora\\Attributes\\Action(hook: 'rest_api_init', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'rest_api_init', priority: 10)]
                 public function onRestInit(): void
                 {
                     // Register additional routes
                 }
 
-                #[\\Pollora\\Attributes\\Action(hook: 'init', priority: 5)]
-                #[\\Pollora\\Attributes\\Action(hook: 'admin_init', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'init', priority: 5)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'admin_init', priority: 10)]
                 public function onInit(): void
                 {
                     // Multiple hooks on same method
                 }
 
-                #[\\Pollora\\Attributes\\Schedule(recurrence: 'daily', hook: 'bench_mixed_cron_{$index}')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Schedule(recurrence: 'daily', hook: 'bench_mixed_cron_{$index}')]
                 public function cleanup(): void
                 {
                     // Scheduled cleanup
@@ -561,56 +565,56 @@ final readonly class FixtureGenerator
 
             namespace {$ns};
 
-            use Pollora\\Attributes\\PostType;
+            use Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType;
 
             #[PostType(slug: '{$slug}', singular: 'Heavy {$index}', plural: 'Heavies {$index}')]
-            #[\\Pollora\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail', 'excerpt', 'comments', 'revisions', 'custom-fields'])]
-            #[\\Pollora\\Attributes\\PostType\\ShowInRest(value: true)]
-            #[\\Pollora\\Attributes\\PostType\\HasArchive(value: true)]
-            #[\\Pollora\\Attributes\\PostType\\MenuIcon(value: 'dashicons-hammer')]
-            #[\\Pollora\\Attributes\\PostType\\MenuPosition(value: 20)]
-            #[\\Pollora\\Attributes\\PostType\\Hierarchical(value: true)]
-            #[\\Pollora\\Attributes\\PostType\\PublicPostType(value: true)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\Supports(features: ['title', 'editor', 'thumbnail', 'excerpt', 'comments', 'revisions', 'custom-fields'])]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\ShowInRest(value: true)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\HasArchive(value: true)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\MenuIcon(value: 'dashicons-hammer')]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\MenuPosition(value: 20)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\Hierarchical(value: true)]
+            #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\PostType\\PublicPostType(value: true)]
             class {$className}
             {
-                #[\\Pollora\\Attributes\\Action(hook: 'save_post_{$slug}', priority: 10)]
-                #[\\Pollora\\Attributes\\Action(hook: 'wp_insert_post', priority: 20)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'save_post_{$slug}', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'wp_insert_post', priority: 20)]
                 public function onSave(int \$postId): void
                 {
                     // Handle save
                 }
 
-                #[\\Pollora\\Attributes\\Filter(hook: 'the_content', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Filter(hook: 'the_content', priority: 10)]
                 public function filterContent(string \$content): string
                 {
                     return \$content;
                 }
 
-                #[\\Pollora\\Attributes\\Action(hook: 'admin_enqueue_scripts', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'admin_enqueue_scripts', priority: 10)]
                 public function enqueueAdminScripts(): void
                 {
                     // Enqueue scripts
                 }
 
-                #[\\Pollora\\Attributes\\Filter(hook: 'manage_{$slug}_posts_columns', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Filter(hook: 'manage_{$slug}_posts_columns', priority: 10)]
                 public function addAdminColumns(array \$columns): array
                 {
                     return \$columns;
                 }
 
-                #[\\Pollora\\Attributes\\Action(hook: 'manage_{$slug}_posts_custom_column', priority: 10)]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Action(hook: 'manage_{$slug}_posts_custom_column', priority: 10)]
                 public function renderAdminColumn(string \$column, int \$postId): void
                 {
                     // Render column
                 }
 
-                #[\\Pollora\\Attributes\\Schedule(recurrence: 'hourly', hook: 'bench_heavy_sync_{$index}')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Schedule(recurrence: 'hourly', hook: 'bench_heavy_sync_{$index}')]
                 public function syncData(): void
                 {
                     // Scheduled sync
                 }
 
-                #[\\Pollora\\Attributes\\Schedule(recurrence: 'daily', hook: 'bench_heavy_cleanup_{$index}')]
+                #[\\Pollora\\Discovery\\Tests\\Benchmark\\Fixtures\\Attributes\\Schedule(recurrence: 'daily', hook: 'bench_heavy_cleanup_{$index}')]
                 public function cleanupOldData(): void
                 {
                     // Scheduled cleanup

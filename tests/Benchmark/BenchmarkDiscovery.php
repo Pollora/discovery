@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Benchmark;
+namespace Pollora\Discovery\Tests\Benchmark;
 
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryItemsInterface;

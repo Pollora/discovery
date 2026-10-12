@@ -2,15 +2,13 @@
 
 declare(strict_types=1);
 
-use Illuminate\Container\Container;
-use Illuminate\Support\Facades\Facade;
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
 use Pollora\Discovery\Infrastructure\Services\ReflectionCache;
-use Tests\Benchmark\BenchmarkDiscovery;
-use Tests\Benchmark\Fixtures\FixtureGenerator;
+use Pollora\Discovery\Tests\Benchmark\BenchmarkDiscovery;
+use Pollora\Discovery\Tests\Benchmark\Fixtures\FixtureGenerator;
 
 /**
  * Discovery Performance Tests
@@ -21,33 +19,6 @@ use Tests\Benchmark\Fixtures\FixtureGenerator;
  *
  * Run with: vendor/bin/pest tests/Benchmark/DiscoveryPerformanceTest.php
  */
-
-/** @var Container|null */
-$__benchPreviousContainer = null;
-
-function savePreviousContainer(): void
-{
-    global $__benchPreviousContainer;
-    $__benchPreviousContainer ??= Container::getInstance();
-}
-
-function createBenchContainer(): Container
-{
-    savePreviousContainer();
-    $container = new Container;
-    Container::setInstance($container);
-
-    return $container;
-}
-
-function restorePreviousContainer(): void
-{
-    global $__benchPreviousContainer;
-    if ($__benchPreviousContainer instanceof Container) {
-        Container::setInstance($__benchPreviousContainer);
-    }
-}
-
 function clearDiscoveryCacheManagerStatic(): void
 {
     $ref = new ReflectionClass(DiscoveryCacheManager::class);
@@ -58,7 +29,7 @@ function clearDiscoveryCacheManagerStatic(): void
 function generateAndRegister(int $count): array
 {
     $basePath = __DIR__.'/Generated';
-    $namespace = 'Tests\\Benchmark\\Generated';
+    $namespace = 'Pollora\\Discovery\\Tests\\Benchmark\\Generated';
 
     $generator = new FixtureGenerator($basePath, $namespace);
     $info = $generator->generate($count);
@@ -83,16 +54,12 @@ describe('Discovery Performance', function (): void {
 
     afterEach(function (): void {
         clearDiscoveryCacheManagerStatic();
-        restorePreviousContainer();
-        Facade::clearResolvedInstances();
-        Facade::setFacadeApplication(Container::getInstance());
     });
 
     it('scans 100 classes via Spatie in under 500ms', function (): void {
         $setup = generateAndRegister(100);
 
         try {
-            createBenchContainer();
             $cacheManager = new DiscoveryCacheManager;
             $reflectionCache = new ReflectionCache;
             $context = new DiscoveryContext($reflectionCache);
@@ -118,7 +85,6 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(100);
 
         try {
-            createBenchContainer();
             $engine = new DiscoveryEngine;
 
             $location = new DiscoveryLocation(
@@ -151,7 +117,6 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(500);
 
         try {
-            createBenchContainer();
             $engine = new DiscoveryEngine;
 
             $location = new DiscoveryLocation(
@@ -183,7 +148,6 @@ describe('Discovery Performance', function (): void {
     it('scales near-linearly from 100 to 500 classes', function (): void {
         // Benchmark 100 classes
         $setup100 = generateAndRegister(100);
-        createBenchContainer();
 
         try {
             $engine100 = new DiscoveryEngine;
@@ -233,7 +197,6 @@ describe('Discovery Performance', function (): void {
         $setup = generateAndRegister(250);
 
         try {
-            createBenchContainer();
             $engine = new DiscoveryEngine;
 
             $location = new DiscoveryLocation(
@@ -265,7 +228,7 @@ describe('Discovery Performance', function (): void {
 
     it('handles multi-location with DDD subdirectories without excessive overhead', function (): void {
         $basePath = __DIR__.'/Generated';
-        $namespace = 'Tests\\Benchmark\\Generated';
+        $namespace = 'Pollora\\Discovery\\Tests\\Benchmark\\Generated';
         $generator = new FixtureGenerator($basePath, $namespace);
 
         $multiInfo = $generator->generateMultiLocation(200, 5);
@@ -288,7 +251,6 @@ describe('Discovery Performance', function (): void {
         }
 
         try {
-            createBenchContainer();
             $engine = new DiscoveryEngine;
 
             foreach ($multiInfo['locations'] as $loc) {
@@ -314,6 +276,33 @@ describe('Discovery Performance', function (): void {
             }
 
             $generator->cleanup();
+        }
+    });
+
+    it('keeps the memory of a 1000-class discovery under 48 MB', function (): void {
+        // Measured at 16 MB on 2026-10-12 (five discoveries, 21 attributes per
+        // class): three times that leaves room for a slower CI runner, and
+        // still catches a discovery that keeps every reflection it makes.
+        $setup = generateAndRegister(1000);
+
+        try {
+            $engine = new DiscoveryEngine;
+            $engine->addLocation(new DiscoveryLocation($setup['info']['namespace'], $setup['info']['path']));
+
+            foreach (['hooks', 'providers', 'post_types', 'rest_routes', 'schedules'] as $identifier) {
+                $engine->addDiscovery($identifier, new BenchmarkDiscovery($identifier));
+            }
+
+            memory_reset_peak_usage();
+            $before = memory_get_usage();
+            $engine->discover();
+            $peakMb = (memory_get_peak_usage() - $before) / (1024 * 1024);
+
+            expect($engine->getPerformanceStats()['context']['total_classes'])->toBeGreaterThanOrEqual(1000)
+                ->and($peakMb)->toBeLessThan(48.0);
+        } finally {
+            spl_autoload_unregister($setup['autoloader']);
+            $setup['generator']->cleanup();
         }
     });
 });

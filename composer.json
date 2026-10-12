@@ -1,0 +1,72 @@
+{
+    "name": "pollora/discovery",
+    "description": "Find the PHP classes that carry attributes in themes, plugins and modules, and hand them to the code that registers them. Runs with or without Laravel.",
+    "type": "library",
+    "keywords": [
+        "attributes",
+        "discovery",
+        "php",
+        "pollora",
+        "wordpress"
+    ],
+    "homepage": "https://pollora.dev/core-concepts/auto-discovery/",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Amphibee",
+            "email": "contact@amphibee.fr"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Pollora/discovery/issues",
+        "source": "https://github.com/Pollora/discovery"
+    },
+    "require": {
+        "php": "^8.3",
+        "illuminate/collections": "^11.0|^12.0|^13.0",
+        "psr/container": "^2.0",
+        "psr/log": "^3.0",
+        "psr/simple-cache": "^3.0",
+        "spatie/php-structure-discoverer": "^2.4"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.22.1",
+        "mockery/mockery": "^1.6.12",
+        "pestphp/pest": "^3.8.2",
+        "phpstan/phpstan": "^2.1.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pollora\\Discovery\\": "src/",
+            "Pollora\\Attributes\\": "attributes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pollora\\Discovery\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@test:unit",
+            "@phpstan",
+            "@lint:check"
+        ],
+        "test:unit": "pest --testsuite=Unit",
+        "test:benchmark": "pest tests/Benchmark",
+        "benchmark": "@php tests/Benchmark/run.php",
+        "test:coverage": "pest --testsuite=Unit --coverage",
+        "phpstan": "phpstan analyse",
+        "phpstan:ci": "phpstan analyse --no-progress",
+        "lint": "pint",
+        "lint:check": "pint --test"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

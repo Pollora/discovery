@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Tests\Benchmark;
+namespace Pollora\Discovery\Tests\Benchmark;
 
 use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Pollora\Discovery\Domain\Models\DiscoveryLocation;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryCacheManager;
 use Pollora\Discovery\Infrastructure\Services\DiscoveryEngine;
 use Pollora\Discovery\Infrastructure\Services\ReflectionCache;
-use Tests\Benchmark\Fixtures\FixtureGenerator;
+use Pollora\Discovery\Tests\Benchmark\Fixtures\FixtureGenerator;
 
 /**
  * Discovery Benchmark Runner
@@ -75,7 +75,7 @@ final class DiscoveryBenchmark
         // Generate fixtures
         $generator = new FixtureGenerator(
             $this->fixturesBasePath,
-            'Tests\\Benchmark\\Generated'
+            'Pollora\\Discovery\\Tests\\Benchmark\\Generated'
         );
 
         $fixtureInfo = $generator->generate($count);
@@ -234,7 +234,7 @@ final class DiscoveryBenchmark
 
         $generator = new FixtureGenerator(
             $this->fixturesBasePath,
-            'Tests\\Benchmark\\Generated'
+            'Pollora\\Discovery\\Tests\\Benchmark\\Generated'
         );
 
         $multiInfo = $generator->generateMultiLocation($totalClasses, $moduleCount);

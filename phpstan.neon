@@ -1,0 +1,9 @@
+parameters:
+    level: 5
+    paths:
+        - src
+        - attributes
+    ignoreErrors:
+        # Public traits for the discoveries of packages that use this one
+        - identifier: trait.unused
+

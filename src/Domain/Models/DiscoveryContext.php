@@ -90,8 +90,7 @@ final class DiscoveryContext
      */
     public function isClassProcessed(string $className): bool
     {
-        return isset($this->processedClasses[$className]) &&
-               (isset($this->processedClasses[$className]) && $this->processedClasses[$className] !== []);
+        return ($this->processedClasses[$className] ?? []) !== [];
     }
 
     /**
