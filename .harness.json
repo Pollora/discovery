@@ -1,6 +1,6 @@
 {
     "profile": "core",
-    "mode": "observe",
+    "mode": "enforce",
     "downstream": [
         "framework"
     ],
@@ -10,5 +10,10 @@
     "ratchet": {
         "phpstan_level": 5,
         "phpstan_baseline": 0
-    }
+    },
+    "observed": [
+        "Code style",
+        "Rector",
+        "Dependency analysis"
+    ]
 }
