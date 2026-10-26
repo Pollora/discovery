@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "surface": {
+        "attribute:Pollora\\Attributes\\SkipDiscovery": "targets class",
+        "attribute:Pollora\\Attributes\\SkipDiscovery($except)": "array, optional = array"
+    }
+}

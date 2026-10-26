@@ -1,0 +1,14 @@
+{
+    "profile": "core",
+    "mode": "observe",
+    "downstream": [
+        "framework"
+    ],
+    "allow_laravel": [
+        "illuminate/collections"
+    ],
+    "ratchet": {
+        "phpstan_level": 5,
+        "phpstan_baseline": 0
+    }
+}
