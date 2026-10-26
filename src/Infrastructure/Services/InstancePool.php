@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pollora\Discovery\Infrastructure\Services;
 
 use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
+use Pollora\Discovery\Domain\Exceptions\InstantiationFailed;
 use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 
 /**
@@ -109,11 +110,7 @@ final class InstancePool
 
             $this->stats['errors']++;
 
-            throw new \RuntimeException(
-                sprintf('Failed to instantiate class %s: %s', $className, $throwable->getMessage()),
-                $throwable->getCode(),
-                $throwable
-            );
+            throw InstantiationFailed::forClass($className, $throwable);
         }
     }
 

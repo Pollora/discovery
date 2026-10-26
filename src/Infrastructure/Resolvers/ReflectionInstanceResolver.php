@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pollora\Discovery\Infrastructure\Resolvers;
 
 use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
+use Pollora\Discovery\Domain\Exceptions\CircularDependency;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -34,7 +35,7 @@ final class ReflectionInstanceResolver implements InstanceResolverInterface
         }
 
         if (isset($this->building[$className])) {
-            throw new \RuntimeException(sprintf('Circular dependency detected while building %s', $className));
+            throw CircularDependency::whileBuilding($className);
         }
 
         $constructor = $reflection->getConstructor();

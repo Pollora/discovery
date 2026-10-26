@@ -14,7 +14,6 @@
     "observed": [
         "Code style",
         "Rector",
-        "Dependency analysis",
-        "Security patterns"
+        "Dependency analysis"
     ]
 }

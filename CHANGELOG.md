@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A circular dependency and a class that cannot be instantiated throw the named `CircularDependency` and `InstantiationFailed` exceptions instead of a bare `\RuntimeException`. They extend `\RuntimeException`, so a `catch (\RuntimeException)` keeps working, and the messages keep their prefixes (`Circular dependency detected while building …`, `Failed to instantiate class …`); the circular one now says how to break the loop
+
 ## [0.1.0] - 2026-10-12
 
 A first version for the framework's next release to build on; 1.0.0 comes with that release.
