@@ -6,6 +6,7 @@ namespace Pollora\Discovery\Infrastructure\Services;
 
 use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
+use Pollora\Discovery\Domain\Exceptions\InstantiationFailed;
 use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 use ReflectionClass;
 use ReflectionException;
@@ -168,11 +169,7 @@ final class ReflectionCache implements ReflectionCacheInterface
 
                 $this->classInstances[$className] = $this->resolver->make($className);
             } catch (\Throwable $e) {
-                throw new \RuntimeException(
-                    sprintf('Failed to instantiate class %s: %s', $className, $e->getMessage()),
-                    $e->getCode(),
-                    $e
-                );
+                throw InstantiationFailed::forClass($className, $e);
             }
         }
 
