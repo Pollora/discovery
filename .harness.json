@@ -12,7 +12,6 @@
         "phpstan_baseline": 0
     },
     "observed": [
-        "Rector",
-        "Dependency analysis"
+        "Rector"
     ]
 }
