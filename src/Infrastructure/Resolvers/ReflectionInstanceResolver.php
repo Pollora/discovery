@@ -40,7 +40,7 @@ final class ReflectionInstanceResolver implements InstanceResolverInterface
 
         $constructor = $reflection->getConstructor();
 
-        if ($constructor === null || $constructor->getNumberOfParameters() === 0) {
+        if (! $constructor instanceof \ReflectionMethod || $constructor->getNumberOfParameters() === 0) {
             return $reflection->newInstance();
         }
 
