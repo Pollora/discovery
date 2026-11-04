@@ -53,10 +53,10 @@
             "@phpstan",
             "@lint:check"
         ],
-        "test:unit": "pest --testsuite=Unit",
+        "test:unit": "pest --testsuite=Unit,Architecture",
         "test:benchmark": "pest tests/Benchmark",
         "benchmark": "@php tests/Benchmark/run.php",
-        "test:coverage": "pest --testsuite=Unit --coverage",
+        "test:coverage": "pest --testsuite=Unit,Architecture --coverage",
         "phpstan": "phpstan analyse",
         "phpstan:ci": "phpstan analyse --no-progress",
         "lint": "pint",

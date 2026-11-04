@@ -9,7 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- A circular dependency and a class that cannot be instantiated throw the named `CircularDependency` and `InstantiationFailed` exceptions instead of a bare `\RuntimeException`. They extend `\RuntimeException`, so a `catch (\RuntimeException)` keeps working, and the messages keep their prefixes (`Circular dependency detected while building …`, `Failed to instantiate class …`); the circular one now says how to break the loop
+- A circular dependency and a class that cannot be instantiated throw the named `CircularDependencyException` and `InstantiationFailedException` exceptions instead of a bare `\RuntimeException`. They extend `\RuntimeException`, so a `catch (\RuntimeException)` keeps working, and the messages keep their prefixes (`Circular dependency detected while building …`, `Failed to instantiate class …`); the circular one now says how to break the loop
+- `HasInstancePool` no longer imports anything from the infrastructure layer: `setInstancePool()` accepts the new `Domain\Contracts\InstancePoolInterface`, which `InstancePool` implements, so every existing call keeps working. Without a pool, a fallback or `resolve()`, the trait builds the class with `Domain\Services\ReflectionInstanceBuilder`, the code that `ReflectionInstanceResolver` (now a thin subclass of it) used to hold
+
+### Deprecated
+
+- `Domain\Exceptions\CircularDependency`, an alias of `CircularDependencyException` kept for the code written against the first draft of that exception (`catch`, `new`, `instanceof` and `::whileBuilding()` all still work); it goes away in the next major version
+
+### Tests
+
+- The architecture rules (`tests/Arch.php`) run with the unit suite and in CI (`composer test:unit` now runs the `Unit` and `Architecture` suites)
 
 ## [0.1.0] - 2026-10-12
 
