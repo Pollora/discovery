@@ -9,7 +9,7 @@ use RuntimeException;
 /**
  * Thrown when building a class needs the class being built.
  */
-final class CircularDependency extends RuntimeException
+final class CircularDependencyException extends RuntimeException
 {
     /**
      * @param  string  $className  The class whose construction loops back to itself
