@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Infrastructure\Services;
 
+use Pollora\Discovery\Domain\Contracts\InstancePoolInterface;
 use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
-use Pollora\Discovery\Domain\Exceptions\InstantiationFailed;
+use Pollora\Discovery\Domain\Exceptions\InstantiationFailedException;
 use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
 
 /**
@@ -22,7 +23,7 @@ use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
  * - Memory-efficient cleanup and pooling strategies
  * - Thread-safe operations for concurrent access
  */
-final class InstancePool
+final class InstancePool implements InstancePoolInterface
 {
     /**
      * Pool of instantiated objects
@@ -110,7 +111,7 @@ final class InstancePool
 
             $this->stats['errors']++;
 
-            throw InstantiationFailed::forClass($className, $throwable);
+            throw InstantiationFailedException::forClass($className, $throwable);
         }
     }
 

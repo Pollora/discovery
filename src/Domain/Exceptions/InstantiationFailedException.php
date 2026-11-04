@@ -10,7 +10,7 @@ use Throwable;
 /**
  * Thrown when a discovered class cannot be built: its constructor failed, or one of its dependencies cannot be resolved.
  */
-final class InstantiationFailed extends RuntimeException
+final class InstantiationFailedException extends RuntimeException
 {
     /**
      * @param  string  $className  The class that could not be instantiated
