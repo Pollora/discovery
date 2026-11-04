@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Pollora\Discovery\Domain\Services;
 
-use Pollora\Discovery\Infrastructure\Resolvers\ReflectionInstanceResolver;
-use Pollora\Discovery\Infrastructure\Services\InstancePool;
+use Pollora\Discovery\Domain\Contracts\InstancePoolInterface;
 
 /**
  * Trait HasInstancePool
@@ -19,12 +18,12 @@ trait HasInstancePool
     /**
      * Optional instance pool for centralized instance management
      */
-    private ?InstancePool $instancePool = null;
+    private ?InstancePoolInterface $instancePool = null;
 
     /**
      * Set the instance pool for centralized instance management.
      */
-    public function setInstancePool(InstancePool $instancePool): void
+    public function setInstancePool(InstancePoolInterface $instancePool): void
     {
         $this->instancePool = $instancePool;
     }
@@ -53,7 +52,7 @@ trait HasInstancePool
             return resolve($className);
         }
 
-        return (new ReflectionInstanceResolver)->make($className);
+        return (new ReflectionInstanceBuilder)->make($className);
     }
 
     /**
