@@ -146,3 +146,47 @@ describe('persistent cache', function (): void {
             ->and((new DiscoveryCacheManager)->classesMissingFromCache(cacheManagerLocation($this->dir)))->toBeNull();
     });
 });
+
+describe('clearing and inspecting', function (): void {
+    it('forgets the cached entry of each location', function (): void {
+        $driver = new StaticDiscoverCacheDriver;
+        $driver->put('discovery_'.md5($this->dir), []);
+        $driver->put('discovery_'.md5('/other'), []);
+        $manager = new DiscoveryCacheManager($driver);
+
+        $manager->clearCache([cacheManagerLocation($this->dir)]);
+
+        expect($driver->has('discovery_'.md5($this->dir)))->toBeFalse()
+            ->and($driver->has('discovery_'.md5('/other')))->toBeTrue();
+    });
+
+    it('has nothing to clear without a driver', function (): void {
+        (new DiscoveryCacheManager)->clearCache([cacheManagerLocation($this->dir)]);
+    })->throwsNoExceptions();
+
+    it('exposes the driver it was given', function (): void {
+        $driver = new StaticDiscoverCacheDriver;
+
+        expect((new DiscoveryCacheManager($driver))->getCacheDriver())->toBe($driver)
+            ->and((new DiscoveryCacheManager)->getCacheDriver())->toBeNull();
+    });
+
+    it('counts the locations it holds in memory', function (): void {
+        $manager = new DiscoveryCacheManager;
+
+        expect($manager->getStaticCacheSize())->toBe(0);
+
+        scanWith($manager, $this->dir);
+
+        expect($manager->getStaticCacheSize())->toBe(1);
+    });
+
+    it('lists nothing as missing when the cache holds every class on disk', function (): void {
+        file_put_contents($this->dir.'/Known.php', "<?php\nnamespace CacheFixture;\nfinal class Known {}\n");
+        $driver = new StaticDiscoverCacheDriver;
+        $manager = new DiscoveryCacheManager($driver);
+        scanWith($manager, $this->dir);
+
+        expect($manager->classesMissingFromCache(cacheManagerLocation($this->dir)))->toBe([]);
+    });
+});
