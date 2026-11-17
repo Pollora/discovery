@@ -181,3 +181,107 @@ describe('statistics', function (): void {
         expect($pool->getDebugInfo()['memory_usage'])->toMatch('/^\d+(\.\d+)? KB$/');
     });
 });
+
+describe('statistics, exact values', function (): void {
+    it('reports a full hit ratio for a single hit after a reset', function (): void {
+        $pool = new InstancePool(poolResolver());
+        $pool->getInstance(PoolTestService::class);
+        $pool->resetStats();
+        $pool->getInstance(PoolTestService::class);
+
+        expect($pool->getStats()['hit_ratio_percent'])->toBe(100.0)
+            ->and($pool->getStats()['total_requests'])->toBe(1);
+    });
+
+    it('resets every counter to zero, including loops and errors', function (): void {
+        $pool = null;
+        $resolver = Mockery::mock(InstanceResolverInterface::class);
+        $resolver->shouldReceive('make')->with(PoolTestService::class)->andReturnUsing(function (string $className) use (&$pool): object {
+            return $pool->getInstance($className);
+        });
+        $resolver->shouldReceive('make')->with(PoolTestOther::class)->andThrow(new LogicException('boom'));
+        $pool = new InstancePool($resolver);
+
+        foreach ([PoolTestService::class, PoolTestOther::class] as $className) {
+            try {
+                $pool->getInstance($className);
+            } catch (InstantiationFailedException) {
+            }
+        }
+
+        $before = $pool->getStats();
+        $pool->resetStats();
+
+        expect($before['circular_dependencies'])->toBeGreaterThan(0)
+            ->and($before['instantiation_errors'])->toBeGreaterThan(0)
+            ->and($pool->getStats())->toBe([
+                'pool_size' => 0,
+                'cache_hits' => 0,
+                'cache_misses' => 0,
+                'hit_ratio_percent' => 0.0,
+                'circular_dependencies' => 0,
+                'instantiation_errors' => 0,
+                'total_requests' => 0,
+            ]);
+    });
+
+    it('lists the classes being built in the debug information', function (): void {
+        $pool = null;
+        $seen = null;
+        $resolver = Mockery::mock(InstanceResolverInterface::class);
+        $resolver->shouldReceive('make')->andReturnUsing(function (string $className) use (&$pool, &$seen): object {
+            $seen = $pool->getDebugInfo()['instantiating'];
+
+            return new $className;
+        });
+        $pool = new InstancePool($resolver);
+        $pool->getInstance(PoolTestService::class);
+
+        expect($seen)->toBe([PoolTestService::class])
+            ->and($pool->getDebugInfo()['instantiating'])->toBe([]);
+    });
+
+    it('estimates an empty pool at zero bytes', function (): void {
+        expect((new InstancePool(poolResolver()))->getDebugInfo()['memory_usage'])->toBe('0 B');
+    });
+
+    it('trims a pool exactly to the limit and leaves one at the limit alone', function (): void {
+        $pool = new InstancePool(poolResolver());
+        $pool->getInstance(PoolTestService::class);
+        $pool->getInstance(PoolTestOther::class);
+
+        $pool->optimize(2);
+
+        expect($pool->getPooledClasses())->toBe([PoolTestService::class, PoolTestOther::class]);
+
+        $pool->optimize(0);
+
+        expect($pool->getPoolSize())->toBe(0);
+    });
+});
+
+describe('byte formatting', function (): void {
+    it('formats a size in the largest unit that keeps it above one', function (int $bytes, string $expected): void {
+        $method = new ReflectionMethod(InstancePool::class, 'formatBytes');
+
+        expect($method->invoke(new InstancePool(poolResolver()), $bytes))->toBe($expected);
+    })->with([
+        'zero' => [0, '0 B'],
+        'just under a kilobyte' => [1023, '1023 B'],
+        'a kilobyte' => [1024, '1 KB'],
+        'just over a kilobyte' => [1025, '1 KB'],
+        'rounded to two decimals' => [10000, '9.77 KB'],
+        'a megabyte and a half' => [1572864, '1.5 MB'],
+        'a gigabyte' => [1073741824, '1 GB'],
+        'three gigabytes' => [3221225472, '3 GB'],
+        'a terabyte stays in gigabytes' => [1099511627776, '1024 GB'],
+    ]);
+
+    it('reports the real serialized size of the pooled instances', function (): void {
+        $pool = new InstancePool(poolResolver());
+        $instance = $pool->getInstance(PoolTestService::class);
+        $instance->label = str_repeat('x', 2 * 1024 * 1024);
+
+        expect($pool->getDebugInfo()['memory_usage'])->toBe(round(strlen(serialize($instance)) / 1024 / 1024, 2).' MB');
+    });
+});
