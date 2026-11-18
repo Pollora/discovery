@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- A warm discovery cache is read once per location: `DiscoveryCacheManager` takes the entry from the driver with `get()` right after its own `has()`, instead of going through Spatie's `Discover::get()`, which asked `has()` and `get()` again. On a store whose `has()` unserializes the entry (Laravel's file store), that saves one full read per scanned location and per request. A cold scan is unchanged and still writes the cache once
 - A circular dependency and a class that cannot be instantiated throw the named `CircularDependencyException` and `InstantiationFailedException` exceptions instead of a bare `\RuntimeException`. They extend `\RuntimeException`, so a `catch (\RuntimeException)` keeps working, and the messages keep their prefixes (`Circular dependency detected while building …`, `Failed to instantiate class …`); the circular one now says how to break the loop
 - `HasInstancePool` no longer imports anything from the infrastructure layer: `setInstancePool()` accepts the new `Domain\Contracts\InstancePoolInterface`, which `InstancePool` implements, so every existing call keeps working. Without a pool, a fallback or `resolve()`, the trait builds the class with `Domain\Services\ReflectionInstanceBuilder`, the code that `ReflectionInstanceResolver` (now a thin subclass of it) used to hold
 
@@ -17,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Domain\Exceptions\CircularDependency`, an alias of `CircularDependencyException` kept for the code written against the first draft of that exception (`catch`, `new`, `instanceof` and `::whileBuilding()` all still work); it goes away in the next major version
 
 ### Tests
+
+- PERF-02: counter-based tests (no timing) prove that a warm cache opens, stats and lists nothing in the scanned directory, that a cold or cleared cache does, and how many reads the cache itself costs; `tests/Support/FileAccessProbe.php` is the reusable probe. `php tests/Benchmark/warm-cache.php` measures cold against warm
 
 - The architecture rules (`tests/Arch.php`) run with the unit suite and in CI (`composer test:unit` now runs the `Unit` and `Architecture` suites)
 

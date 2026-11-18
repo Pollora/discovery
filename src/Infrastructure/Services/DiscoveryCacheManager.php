@@ -75,10 +75,10 @@ class DiscoveryCacheManager
         // been filled and looks exactly like a warm one.
         $fromCache = $this->shouldUseCache() && $this->cacheDriver->has($cacheId);
 
-        $discover = $this->createSpatieDiscoverer($location, $cacheId);
-
         $startedAt = microtime(true);
-        $structures = $discover->get();
+        $structures = $fromCache
+            ? $this->cacheDriver->get($cacheId)
+            : $this->scan($location, $cacheId);
         $elapsed = (microtime(true) - $startedAt) * 1000;
 
         self::$structuresCache[$cacheId] = $structures;
@@ -225,17 +225,24 @@ class DiscoveryCacheManager
     }
 
     /**
-     * Create a configured Spatie discoverer instance.
+     * Walk the location and, when a cache is configured, store the result.
+     *
+     * The warm path never gets here. It does not go through Spatie's
+     * `Discover::get()` either, which asks the driver `has()` then `get()`
+     * again after the manager already asked: on a file store each of those
+     * reads and unserializes the whole entry.
+     *
+     * @return array<mixed>
      */
-    private function createSpatieDiscoverer(DiscoveryLocationInterface $location, string $cacheId): Discover
+    private function scan(DiscoveryLocationInterface $location, string $cacheId): array
     {
-        $discover = Discover::in($location->getPath())->full();
+        $structures = Discover::in($location->getPath())->full()->getWithoutCache();
 
         if ($this->shouldUseCache()) {
-            return $discover->withCache($cacheId, $this->cacheDriver);
+            $this->cacheDriver->put($cacheId, $structures);
         }
 
-        return $discover;
+        return $structures;
     }
 
     /**
