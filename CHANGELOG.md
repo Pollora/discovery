@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
 ### Changed
 
 - A warm discovery cache is read once per location: `DiscoveryCacheManager` takes the entry from the driver with `get()` right after its own `has()`, instead of going through Spatie's `Discover::get()`, which asked `has()` and `get()` again. On a store whose `has()` unserializes the entry (Laravel's file store), that saves one full read per scanned location and per request. A cold scan is unchanged and still writes the cache once
