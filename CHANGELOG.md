@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 ### Changed
 
 - **BREAKING**: `DiscoveryManager` is now `final` (and `readonly`, its only property being the engine it was given) (CONV-08). A class that extends it no longer loads, and a test can no longer mock it with Mockery: build it over a `DiscoveryEngineInterface` (mocked or real), which is the one collaborator it has
