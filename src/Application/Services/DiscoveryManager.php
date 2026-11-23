@@ -19,7 +19,7 @@ use Pollora\Discovery\Domain\Models\DirectoryLocation;
  *
  * Inspired by Tempest Framework's API while leveraging Spatie's structure discovery.
  */
-class DiscoveryManager
+final readonly class DiscoveryManager
 {
     /**
      * Create a new discovery manager
@@ -27,7 +27,7 @@ class DiscoveryManager
      * @param  DiscoveryEngineInterface  $engine  The discovery engine
      */
     public function __construct(
-        private readonly DiscoveryEngineInterface $engine
+        private DiscoveryEngineInterface $engine
     ) {}
 
     /**

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING**: `DiscoveryManager` is now `final` (and `readonly`, its only property being the engine it was given) (CONV-08). A class that extends it no longer loads, and a test can no longer mock it with Mockery: build it over a `DiscoveryEngineInterface` (mocked or real), which is the one collaborator it has
 - `CircularDependencyException` is now `final` (CONV-08). This is a restriction of the API for anyone who extended it: a class that is not an extension point can no longer be subclassed; compose it instead
 
 ## [0.2.0] - 2026-11-19
