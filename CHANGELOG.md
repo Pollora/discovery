@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A cached discovery entry that does not hold discovered structures (written by another version of the package, or truncated) is ignored and the location is scanned again, which also rewrites the entry. It used to be handed to the discoveries as it was, and the first `discover()` call failed with a `TypeError` until the cache was cleared by hand
+
 ## [0.3.0] - 2026-11-23
 
 ### Changed
