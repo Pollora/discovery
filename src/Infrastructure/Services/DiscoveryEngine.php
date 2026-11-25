@@ -563,11 +563,13 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
     {
         try {
             $className = $structure->namespace.'\\'.$structure->name;
-            $reflection = new \ReflectionClass($className);
-            $attrs = $reflection->getAttributes(SkipDiscovery::class);
+            // A class or enum that cannot be autoloaded has no attribute to read: it is a full skip
+            if (class_exists($className)) {
+                $attrs = (new \ReflectionClass($className))->getAttributes(SkipDiscovery::class);
 
-            if ($attrs !== []) {
-                return $attrs[0]->newInstance();
+                if ($attrs !== []) {
+                    return $attrs[0]->newInstance();
+                }
             }
         } catch (\Throwable) {
             // If reflection fails, treat as full skip
