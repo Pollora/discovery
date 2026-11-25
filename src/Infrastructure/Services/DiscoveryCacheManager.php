@@ -24,7 +24,7 @@ class DiscoveryCacheManager
     /**
      * Static cache for discovered structures to avoid repeated scans.
      *
-     * @var array<string, mixed>
+     * @var array<string, array<mixed>>
      */
     private static array $structuresCache = [];
 
@@ -193,7 +193,7 @@ class DiscoveryCacheManager
         }
 
         $names = static fn (array $structures): array => array_map(
-            static fn (mixed $structure): string => is_object($structure) && method_exists($structure, 'getFcqn') ? $structure->getFcqn() : (string) $structure,
+            static fn (mixed $structure): string => is_object($structure) && method_exists($structure, 'getFcqn') ? $structure->getFcqn() : (is_string($structure) ? $structure : ''),
             $structures,
         );
 
