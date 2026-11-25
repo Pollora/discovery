@@ -18,6 +18,17 @@ use Spatie\StructureDiscoverer\Data\DiscoveredClass;
 use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 
 /**
+ * An engine contract with the optional performance statistics, for the mocks that report them.
+ */
+abstract class ManagerStatsEngine implements DiscoveryEngineInterface
+{
+    /**
+     * @return array<mixed>
+     */
+    abstract public function getPerformanceStats(): array;
+}
+
+/**
  * A discovery that remembers what it was shown and applied.
  */
 final class ManagerTestDiscovery implements DiscoveryInterface
@@ -114,6 +125,14 @@ describe('delegating to the engine', function (): void {
         $manager = new DiscoveryManager(Mockery::mock(DiscoveryEngineInterface::class));
 
         expect($manager->getPerformanceStats())->toBe([]);
+    });
+
+    it('keeps only the named statistics an engine reports', function (): void {
+        $engine = Mockery::mock(ManagerStatsEngine::class);
+        $engine->shouldReceive('getPerformanceStats')->andReturn(['hits' => 3, 0 => 'unnamed']);
+        $manager = new DiscoveryManager($engine);
+
+        expect($manager->getPerformanceStats())->toBe(['hits' => 3]);
     });
 
     it('reports the performance statistics of an engine that keeps them', function (): void {
