@@ -94,6 +94,11 @@ final class InstancePool implements InstancePoolInterface
             // Mark as currently instantiating
             $this->instantiating[$className] = true;
 
+            // The resolver builds classes and interfaces; any other name is reported as a build failure below
+            if (! class_exists($className) && ! interface_exists($className)) {
+                throw new \InvalidArgumentException(sprintf('Class %s does not exist', $className));
+            }
+
             // Create instance through the resolver
             $instance = $this->resolver->make($className);
 
