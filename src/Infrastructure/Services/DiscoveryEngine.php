@@ -275,6 +275,10 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $structures = $this->cacheManager->getStructuresForLocation($location, $this->context);
 
             foreach ($structures as $structure) {
+                if (! $structure instanceof DiscoveredStructure) {
+                    throw new \UnexpectedValueException(sprintf('Discovery expected a discovered structure from %s, got %s.', $location->getPath(), get_debug_type($structure)));
+                }
+
                 $discovery->discover($location, $structure, $reflectionCache);
             }
         }
@@ -405,6 +409,10 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
             $locationStructures = $this->cacheManager->getStructuresForLocation($location, $this->context);
 
             foreach ($locationStructures as $structure) {
+                if (! $structure instanceof DiscoveredStructure) {
+                    throw new \UnexpectedValueException(sprintf('Discovery expected a discovered structure from %s, got %s.', $location->getPath(), get_debug_type($structure)));
+                }
+
                 $allStructures[] = [
                     'structure' => $structure,
                     'location' => $location,

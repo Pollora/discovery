@@ -314,3 +314,19 @@ describe('locations and cache', function (): void {
         expect($engine->getLocations())->toHaveCount(1);
     });
 });
+
+describe('what the cache hands back', function (): void {
+    it('refuses an entry that is not a discovered structure, when it discovers everything', function (): void {
+        $engine = procEngine(['App\\NotAStructure']);
+
+        expect(fn () => $engine->discover())
+            ->toThrow(UnexpectedValueException::class, 'Discovery expected a discovered structure');
+    });
+
+    it('refuses an entry that is not a discovered structure, when it runs one discovery', function (): void {
+        $engine = procEngine([42]);
+
+        expect(fn () => $engine->runDiscovery('any', new ProcRecordingDiscovery))
+            ->toThrow(DiscoveryException::class);
+    });
+});
