@@ -40,7 +40,7 @@ final class DiscoveryContext
     /**
      * Current processing stats
      *
-     * @var array<string, mixed>
+     * @var array<string, int>
      */
     private array $processingStats = [
         'classes_processed' => 0,

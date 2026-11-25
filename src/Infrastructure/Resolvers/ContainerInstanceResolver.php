@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pollora\Discovery\Infrastructure\Resolvers;
 
 use Pollora\Discovery\Domain\Contracts\InstanceResolverInterface;
+use Pollora\Discovery\Domain\Exceptions\InstantiationFailedException;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -21,6 +22,15 @@ final readonly class ContainerInstanceResolver implements InstanceResolverInterf
 
     public function make(string $className): object
     {
-        return $this->container->get($className);
+        $instance = $this->container->get($className);
+
+        if (! $instance instanceof $className) {
+            throw InstantiationFailedException::forClass(
+                $className,
+                new \UnexpectedValueException(sprintf('The container returned %s instead of %s.', get_debug_type($instance), $className))
+            );
+        }
+
+        return $instance;
     }
 }
