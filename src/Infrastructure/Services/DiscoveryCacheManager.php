@@ -9,6 +9,7 @@ use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
+use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 use Spatie\StructureDiscoverer\Discover;
 
 /**
@@ -193,7 +194,7 @@ class DiscoveryCacheManager
         }
 
         $names = static fn (array $structures): array => array_map(
-            static fn (mixed $structure): string => is_object($structure) && method_exists($structure, 'getFcqn') ? $structure->getFcqn() : (is_string($structure) ? $structure : ''),
+            static fn (mixed $structure): string => $structure instanceof DiscoveredStructure ? $structure->getFcqn() : (is_string($structure) ? $structure : ''),
             $structures,
         );
 
