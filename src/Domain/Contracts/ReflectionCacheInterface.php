@@ -21,7 +21,7 @@ interface ReflectionCacheInterface
      * Get cached ReflectionClass instance for a class name.
      *
      * @param  string  $className  The fully qualified class name
-     * @return ReflectionClass The cached reflection class
+     * @return ReflectionClass<object> The cached reflection class
      *
      * @throws \ReflectionException If the class doesn't exist
      */
@@ -41,7 +41,7 @@ interface ReflectionCacheInterface
      *
      * @param  string  $className  The fully qualified class name
      * @param  string|null  $attributeClass  Optional filter by attribute class
-     * @return array<\ReflectionAttribute> Array of class attributes
+     * @return array<\ReflectionAttribute<object>> Array of class attributes
      */
     public function getClassAttributes(string $className, ?string $attributeClass = null): array;
 

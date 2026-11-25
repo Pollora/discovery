@@ -30,14 +30,14 @@ final class ReflectionCache implements ReflectionCacheInterface
     /**
      * Cache for ReflectionClass instances
      *
-     * @var array<string, ReflectionClass>
+     * @var array<string, ReflectionClass<object>>
      */
     private array $classReflections = [];
 
     /**
      * Cache for class-level attributes
      *
-     * @var array<string, array<string, array<\ReflectionAttribute>>>
+     * @var array<string, array<string, array<\ReflectionAttribute<object>>>>
      */
     private array $classAttributes = [];
 
@@ -167,7 +167,7 @@ final class ReflectionCache implements ReflectionCacheInterface
                     throw new \InvalidArgumentException(sprintf('Class %s is not instantiable', $className));
                 }
 
-                $this->classInstances[$className] = $this->resolver->make($className);
+                $this->classInstances[$className] = $this->resolver->make($reflection->name);
             } catch (\Throwable $e) {
                 throw InstantiationFailedException::forClass($className, $e);
             }

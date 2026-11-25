@@ -67,6 +67,23 @@ describe('getting instances', function (): void {
             ->and($pool->getStats()['instantiation_errors'])->toBe(1);
     });
 
+    it('reports a name that is neither a class nor an interface without asking the resolver', function (): void {
+        $resolver = Mockery::mock(InstanceResolverInterface::class);
+        $resolver->shouldNotReceive('make');
+        $pool = new InstancePool($resolver);
+
+        expect(fn () => $pool->getInstance('App\\DoesNotExist'))->toThrow(InstantiationFailedException::class)
+            ->and($pool->isInstantiating('App\\DoesNotExist'))->toBeFalse()
+            ->and($pool->getStats()['instantiation_errors'])->toBe(1);
+    });
+
+    it('leaves an interface to the resolver, which may know a binding for it', function (): void {
+        $resolver = Mockery::mock(InstanceResolverInterface::class);
+        $resolver->shouldReceive('make')->once()->with(Countable::class)->andReturn(new ArrayObject);
+
+        expect((new InstancePool($resolver))->getInstance(Countable::class))->toBeInstanceOf(ArrayObject::class);
+    });
+
     it('detects a class that is asked for while it is being built', function (): void {
         $pool = null;
         $resolver = Mockery::mock(InstanceResolverInterface::class);
