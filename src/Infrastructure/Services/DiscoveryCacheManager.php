@@ -9,6 +9,7 @@ use Pollora\Discovery\Domain\Models\DiscoveryContext;
 use Psr\Log\LoggerInterface;
 use Spatie\StructureDiscoverer\Cache\DiscoverCacheDriver;
 use Spatie\StructureDiscoverer\Cache\NullDiscoverCacheDriver;
+use Spatie\StructureDiscoverer\Data\DiscoveredStructure;
 use Spatie\StructureDiscoverer\Discover;
 
 /**
@@ -77,9 +78,18 @@ class DiscoveryCacheManager
         $fromCache = $driver instanceof DiscoverCacheDriver && $driver->has($cacheId);
 
         $startedAt = microtime(true);
-        $structures = $driver instanceof DiscoverCacheDriver && $fromCache
-            ? $driver->get($cacheId)
-            : $this->scan($location, $cacheId);
+
+        // One read of the entry. One written by another version or truncated holds something
+        // else than discovered structures: it is ignored, and the rescan rewrites it
+        $cached = $driver instanceof DiscoverCacheDriver && $fromCache ? $driver->get($cacheId) : null;
+
+        if ($cached !== null && $this->holdsOnlyStructures($cached)) {
+            $structures = $cached;
+        } else {
+            $fromCache = false;
+            $structures = $this->scan($location, $cacheId);
+        }
+
         $elapsed = (microtime(true) - $startedAt) * 1000;
 
         self::$structuresCache[$cacheId] = $structures;
@@ -259,6 +269,22 @@ class DiscoveryCacheManager
             && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver)
             ? $this->cacheDriver
             : null;
+    }
+
+    /**
+     * Whether a cached entry is made of the structures discovery hands to the discoveries.
+     *
+     * @param  array<mixed>  $entry
+     */
+    private function holdsOnlyStructures(array $entry): bool
+    {
+        foreach ($entry as $structure) {
+            if (! $structure instanceof DiscoveredStructure) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
