@@ -132,6 +132,20 @@ describe('persistent cache', function (): void {
             ->and($second->scans()[0]['source'])->toBe('cache');
     });
 
+    it('scans again when the cached entry does not hold discovered structures', function (): void {
+        $driver = new StaticDiscoverCacheDriver;
+        $location = cacheManagerLocation($this->dir);
+        $manager = new DiscoveryCacheManager($driver);
+        $cacheId = (new ReflectionMethod($manager, 'generateCacheId'))->invoke($manager, $location);
+        $driver->put($cacheId, ['App\\Stale\\Entry']);
+
+        $structures = $manager->getStructuresForLocation($location, new DiscoveryContext(new ReflectionCache));
+
+        expect($structures)->toBe([])
+            ->and($manager->scans()[0]['source'])->toBe('disk')
+            ->and($driver->get($cacheId))->toBe([]);
+    });
+
     it('names the classes on disk that a cached entry lacks', function (): void {
         file_put_contents($this->dir.'/NewAction.php', "<?php\nnamespace CacheFixture;\nfinal class NewAction {}\n");
         $driver = new StaticDiscoverCacheDriver;
