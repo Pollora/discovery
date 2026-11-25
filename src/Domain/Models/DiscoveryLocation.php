@@ -80,7 +80,9 @@ final readonly class DiscoveryLocation implements DiscoveryLocationInterface
         $relativePath = ltrim($relativePath, '/\\');
 
         // Remove .php extension
-        $relativePath = preg_replace('/\.php$/', '', $relativePath);
+        if (str_ends_with($relativePath, '.php')) {
+            $relativePath = substr($relativePath, 0, -strlen('.php'));
+        }
 
         // Convert path separators to namespace separators
         $className = str_replace(['/', '\\'], '\\', $relativePath);

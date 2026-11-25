@@ -216,11 +216,13 @@ final class DiscoveryEngine implements DiscoveryEngineInterface
      */
     public function getDiscovery(string $identifier): DiscoveryInterface
     {
-        if (! $this->discoveries->has($identifier)) {
+        $discovery = $this->discoveries->get($identifier);
+
+        if ($discovery === null) {
             throw DiscoveryNotFoundException::withIdentifier($identifier);
         }
 
-        return $this->discoveries->get($identifier);
+        return $discovery;
     }
 
     /**

@@ -74,16 +74,16 @@ class DiscoveryCacheManager
 
         // Asked before reading: once the discoverer has run, a cold cache has
         // been filled and looks exactly like a warm one.
-        $fromCache = $this->shouldUseCache() && $this->cacheDriver->has($cacheId);
+        $driver = $this->activeCacheDriver();
+        $fromCache = $driver instanceof DiscoverCacheDriver && $driver->has($cacheId);
 
         $startedAt = microtime(true);
 
         // One read of the entry. One written by another version or truncated holds something
         // else than discovered structures: it is ignored, and the rescan rewrites it
-        $cached = $fromCache ? $this->cacheDriver->get($cacheId) : null;
+        $cached = $driver instanceof DiscoverCacheDriver && $fromCache ? $driver->get($cacheId) : null;
 
         if ($cached !== null && $this->holdsOnlyStructures($cached)) {
-            $fromCache = true;
             $structures = $cached;
         } else {
             $fromCache = false;
@@ -190,13 +190,15 @@ class DiscoveryCacheManager
      */
     public function classesMissingFromCache(DiscoveryLocationInterface $location): ?array
     {
-        if (! $this->shouldUseCache()) {
+        $driver = $this->activeCacheDriver();
+
+        if (! $driver instanceof DiscoverCacheDriver) {
             return null;
         }
 
         $cacheId = $this->generateCacheId($location);
 
-        if (! $this->cacheDriver->has($cacheId)) {
+        if (! $driver->has($cacheId)) {
             return null;
         }
 
@@ -207,7 +209,7 @@ class DiscoveryCacheManager
 
         return array_values(array_diff(
             $names(Discover::in($location->getPath())->full()->get()),
-            $names($this->cacheDriver->get($cacheId)),
+            $names($driver->get($cacheId)),
         ));
     }
 
@@ -249,11 +251,24 @@ class DiscoveryCacheManager
     {
         $structures = Discover::in($location->getPath())->full()->getWithoutCache();
 
-        if ($this->shouldUseCache()) {
-            $this->cacheDriver->put($cacheId, $structures);
+        $driver = $this->activeCacheDriver();
+
+        if ($driver instanceof DiscoverCacheDriver) {
+            $driver->put($cacheId, $structures);
         }
 
         return $structures;
+    }
+
+    /**
+     * The persistent cache discovery reads through, or null when there is none to use.
+     */
+    private function activeCacheDriver(): ?DiscoverCacheDriver
+    {
+        return $this->cacheDriver instanceof DiscoverCacheDriver
+            && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver)
+            ? $this->cacheDriver
+            : null;
     }
 
     /**
@@ -277,8 +292,7 @@ class DiscoveryCacheManager
      */
     private function shouldUseCache(): bool
     {
-        return $this->cacheDriver instanceof DiscoverCacheDriver
-            && ! ($this->cacheDriver instanceof NullDiscoverCacheDriver);
+        return $this->activeCacheDriver() instanceof DiscoverCacheDriver;
     }
 
     /**

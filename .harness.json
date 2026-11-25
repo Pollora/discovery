@@ -8,7 +8,7 @@
         "illuminate/collections"
     ],
     "ratchet": {
-        "phpstan_level": 7,
+        "phpstan_level": 8,
         "phpstan_baseline": 0,
         "coverage": 98,
         "type_coverage": 100,
