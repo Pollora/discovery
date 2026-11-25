@@ -234,7 +234,7 @@ final readonly class DiscoveryManager
      * Discover all structure types in a location
      *
      * @param  DiscoveryLocationInterface  $location  The location to discover in
-     * @return array<string, array> Results grouped by discovery type
+     * @return array<string, array<mixed>> Results grouped by discovery type
      */
     public function discoverAllInLocation(DiscoveryLocationInterface $location): array
     {
