@@ -276,7 +276,9 @@ final readonly class DiscoveryManager
     public function getPerformanceStats(): array
     {
         if (method_exists($this->engine, 'getPerformanceStats')) {
-            return $this->engine->getPerformanceStats();
+            $stats = $this->engine->getPerformanceStats();
+
+            return is_array($stats) ? array_filter($stats, is_string(...), ARRAY_FILTER_USE_KEY) : [];
         }
 
         return [];
