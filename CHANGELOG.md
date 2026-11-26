@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-26
+
 ### Fixed
 
 - A cached discovery entry that does not hold discovered structures (written by another version of the package, or truncated) is ignored and the location is scanned again, which also rewrites the entry. It used to be handed to the discoveries as it was, and the first `discover()` call failed with a `TypeError` until the cache was cleared by hand
+
+### Changed
+
+- `ContainerInstanceResolver` throws `InstantiationFailedException` when the container returns something that is not an instance of the requested class or interface; it used to hand that object to the caller
 
 ## [0.3.0] - 2026-11-23
 
